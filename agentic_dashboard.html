@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MADMAX AI Agentic Aerial Robotics</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%);
+            color: #ffffff;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .header {
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            padding: 1rem 2rem;
+            border-bottom: 2px solid #00ff88;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(45deg, #00ff88, #00ccff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-align: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .header .subtitle {
+            text-align: center;
+            color: #aaa;
+            font-size: 1.1rem;
+        }
+
+        .main-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: auto auto auto;
+            gap: 1.5rem;
+            padding: 2rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 1.5rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .card h2 {
+            color: #00ff88;
+            margin-bottom: 1rem;
+            font-size: 1.4rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .status-item {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 1rem;
+            border-radius: 8px;
+            border-left: 4px solid #00ff88;
+        }
+
+        .status-item.error {
+            border-left-color: #ff4444;
+        }
+
+        .status-item.warning {
+            border-left-color: #ffaa00;
+        }
+
+        .status-item h3 {
+            font-size: 0.9rem;
+            color: #aaa;
+            margin-bottom: 0.5rem;
+        }
+
+        .status-item .value {
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .command-section {
+            grid-column: 1 / -1;
+        }
+
+        .command-input-container {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .command-input {
+            flex: 1;
+            padding: 1rem;
+            background: rgba(0, 0, 0, 0.3);
+            border: 2px solid rgba(0, 255, 136, 0.3);
+            border-radius: 8px;
+            color: white;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+
+        .command-input:focus {
+            outline: none;
+            border-color: #00ff88;
+        }
+
+        .command-input::placeholder {
+            color: #666;
+        }
+
+        .btn {
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #00ff88, #00ccff);
+            color: #000;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 255, 136, 0.4);
+        }
+
+        .btn-danger {
+            background: linear-gradient(45deg, #ff4444, #ff6b6b);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 68, 68, 0.4);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .logs-container {
+            height: 300px;
+            overflow-y: auto;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            padding: 1rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+        }
+
+        .log-entry {
+            margin-bottom: 0.5rem;
+            padding: 0.5rem;
+            border-radius: 4px;
+            border-left: 3px solid #00ff88;
+        }
+
+        .log-entry.ERROR {
+            border-left-color: #ff4444;
+            background: rgba(255, 68, 68, 0.1);
+        }
+
+        .log-entry.WARNING {
+            border-left-color: #ffaa00;
+            background: rgba(255, 170, 0, 0.1);
+        }
+
+        .log-entry.SUCCESS {
+            border-left-color: #00ff88;
+            background: rgba(0, 255, 136, 0.1);
+        }
+
+        .log-timestamp {
+            color: #666;
+            font-size: 0.8rem;
+        }
+
+        .response-container {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            border-left: 4px solid #00ff88;
+            display: none;
+        }
+
+        .response-container.error {
+            border-left-color: #ff4444;
+        }
+
+        .response-container.success {
+            border-left-color: #00ff88;
+        }
+
+        .mission-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .mission-stat {
+            text-align: center;
+            padding: 0.5rem;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 6px;
+        }
+
+        .mission-stat .label {
+            font-size: 0.8rem;
+            color: #aaa;
+        }
+
+        .mission-stat .value {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #00ff88;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(0, 255, 136, 0.3);
+            border-radius: 50%;
+            border-top-color: #00ff88;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 0.5rem;
+        }
+
+        .status-indicator.online {
+            background: #00ff88;
+            box-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+        }
+
+        .status-indicator.offline {
+            background: #ff4444;
+            box-shadow: 0 0 10px rgba(255, 68, 68, 0.5);
+        }
+
+        .status-indicator.warning {
+            background: #ffaa00;
+            box-shadow: 0 0 10px rgba(255, 170, 0, 0.5);
+        }
+
+        .quick-commands {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .quick-cmd-btn {
+            padding: 0.5rem;
+            background: rgba(0, 255, 136, 0.1);
+            border: 1px solid rgba(0, 255, 136, 0.3);
+            border-radius: 6px;
+            color: #00ff88;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s;
+        }
+
+        .quick-cmd-btn:hover {
+            background: rgba(0, 255, 136, 0.2);
+            border-color: #00ff88;
+        }
+
+        @media (max-width: 768px) {
+            .main-container {
+                grid-template-columns: 1fr;
+                padding: 1rem;
+            }
+            
+            .command-input-container {
+                flex-direction: column;
+            }
+            
+            .header h1 {
+                font-size: 1.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🚁 MADMAX AI AGENTIC AERIAL ROBOTICS</h1>
+        <p class="subtitle">Natural Language Drone Control • NVIDIA Jetson Orin Nano • Pixhawk 6C</p>
+    </div>
+
+    <div class="main-container">
+        <!-- System Status -->
+        <div class="card">
+            <h2>🤖 AI System Status</h2>
+            <div class="status-grid">
+                <div class="status-item" id="system-status">
+                    <h3>System Status</h3>
+                    <div class="value" id="system-status-value">
+                        <span class="status-indicator offline"></span>Initializing...
+                    </div>
+                </div>
+                <div class="status-item" id="nlp-status">
+                    <h3>NLP Engine</h3>
+                    <div class="value" id="nlp-status-value">
+                        <span class="status-indicator offline"></span>Offline
+                    </div>
+                </div>
+                <div class="status-item" id="agent-status">
+                    <h3>AI Agent</h3>
+                    <div class="value" id="agent-status-value">
+                        <span class="status-indicator offline"></span>Offline
+                    </div>
+                </div>
+                <div class="status-item" id="mavlink-status">
+                    <h3>MAVLink</h3>
+                    <div class="value" id="mavlink-status-value">
+                        <span class="status-indicator offline"></span>Disconnected
+                    </div>
+                </div>
+            </div>
+            <div class="status-item">
+                <h3>System Uptime</h3>
+                <div class="value" id="uptime-value">0s</div>
+            </div>
+        </div>
+
+        <!-- Vehicle Status -->
+        <div class="card">
+            <h2>🛸 Vehicle Status</h2>
+            <div class="status-grid">
+                <div class="status-item">
+                    <h3>Armed</h3>
+                    <div class="value" id="armed-status">Unknown</div>
+                </div>
+                <div class="status-item">
+                    <h3>Flight Mode</h3>
+                    <div class="value" id="flight-mode">Unknown</div>
+                </div>
+                <div class="status-item">
+                    <h3>Battery</h3>
+                    <div class="value" id="battery-level">--.-V</div>
+                </div>
+                <div class="status-item">
+                    <h3>GPS Satellites</h3>
+                    <div class="value" id="gps-sats">0</div>
+                </div>
+                <div class="status-item">
+                    <h3>Altitude</h3>
+                    <div class="value" id="altitude">0.0m</div>
+                </div>
+                <div class="status-item">
+                    <h3>Ground Speed</h3>
+                    <div class="value" id="groundspeed">0.0 m/s</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Natural Language Command Interface -->
+        <div class="card command-section">
+            <h2>💬 Natural Language Command Interface</h2>
+            <div class="command-input-container">
+                <input type="text" 
+                       class="command-input" 
+                       id="command-input" 
+                       placeholder="Enter natural language command (e.g., 'Take off to 10 meters', 'Move to coordinates 47.641, -122.140', 'Land safely')"
+                       disabled>
+                <button class="btn btn-primary" id="send-command-btn" disabled>
+                    Send Command
+                </button>
+                <button class="btn btn-danger" id="emergency-stop-btn" disabled>
+                    🚨 Emergency Stop
+                </button>
+            </div>
+            
+            <div class="quick-commands">
+                <div class="quick-cmd-btn" data-command="Take off to 10 meters">Take Off</div>
+                <div class="quick-cmd-btn" data-command="Land safely">Land</div>
+                <div class="quick-cmd-btn" data-command="Hover in place">Hover</div>
+                <div class="quick-cmd-btn" data-command="Return home">RTL</div>
+                <div class="quick-cmd-btn" data-command="Arm the drone">Arm</div>
+                <div class="quick-cmd-btn" data-command="Disarm the drone">Disarm</div>
+            </div>
+
+            <div class="response-container" id="response-container">
+                <div id="response-content"></div>
+                <div class="mission-info" id="mission-info" style="display: none;">
+                    <div class="mission-stat">
+                        <div class="label">Mission ID</div>
+                        <div class="value" id="mission-id">-</div>
+                    </div>
+                    <div class="mission-stat">
+                        <div class="label">Safety Level</div>
+                        <div class="value" id="safety-level">-</div>
+                    </div>
+                    <div class="mission-stat">
+                        <div class="label">Duration</div>
+                        <div class="value" id="mission-duration">-</div>
+                    </div>
+                    <div class="mission-stat">
+                        <div class="label">Commands</div>
+                        <div class="value" id="command-count">-</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- System Logs -->
+        <div class="card">
+            <h2>📋 System Logs</h2>
+            <div class="logs-container" id="logs-container">
+                <div class="log-entry">
+                    <span class="log-timestamp">[00:00:00]</span> System starting...
+                </div>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="card">
+            <h2>⚙️ System Controls</h2>
+            <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                <button class="btn btn-secondary" id="reconnect-btn">
+                    🔄 Reconnect MAVLink
+                </button>
+                <button class="btn btn-secondary" id="clear-logs-btn">
+                    🗑️ Clear Logs
+                </button>
+                <button class="btn btn-secondary" id="refresh-status-btn">
+                    ↻ Refresh Status
+                </button>
+            </div>
+            
+            <div style="margin-top: 1rem; padding: 1rem; background: rgba(0,0,0,0.2); border-radius: 8px;">
+                <h3 style="color: #00ff88; margin-bottom: 0.5rem;">Last Command</h3>
+                <div id="last-command" style="font-style: italic; color: #aaa;">None</div>
+                <h3 style="color: #00ff88; margin: 1rem 0 0.5rem 0;">Last Response</h3>
+                <div id="last-response" style="font-style: italic; color: #aaa;">None</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Socket.IO connection
+        const socket = io();
+        
+        // DOM elements
+        const commandInput = document.getElementById('command-input');
+        const sendCommandBtn = document.getElementById('send-command-btn');
+        const emergencyStopBtn = document.getElementById('emergency-stop-btn');
+        const responseContainer = document.getElementById('response-container');
+        const responseContent = document.getElementById('response-content');
+        const logsContainer = document.getElementById('logs-container');
+        const missionInfo = document.getElementById('mission-info');
+        
+        // System state
+        let systemReady = false;
+        let processing = false;
+        
+        // Socket event handlers
+        socket.on('connect', function() {
+            console.log('Connected to server');
+            addLogEntry('Connected to MADMAX server', 'SUCCESS');
+        });
+        
+        socket.on('disconnect', function() {
+            console.log('Disconnected from server');
+            addLogEntry('Disconnected from server', 'ERROR');
+            updateSystemStatus('offline', false, false, false);
+        });
+        
+        socket.on('system_state_update', function(data) {
+            updateSystemStatus(
+                data.status,
+                data.nlp_ready,
+                data.agent_ready,
+                data.mavlink_connected
+            );
+            updateVehicleStatus(data.vehicle_state);
+            updateLastCommand(data.last_command, data.last_response);
+            updateUptime(data.uptime);
+            
+            systemReady = (data.status === 'ready');
+            updateUIState();
+        });
+        
+        socket.on('status_update', function(data) {
+            addLogEntry(data.message, data.level, data.timestamp);
+        });
+        
+        socket.on('command_processed', function(data) {
+            processing = false;
+            updateUIState();
+            showCommandResponse(data.response);
+        });
+        
+        socket.on('command_result', function(data) {
+            processing = false;
+            updateUIState();
+            showCommandResponse(data);
+        });
+        
+        // UI update functions
+        function updateSystemStatus(status, nlpReady, agentReady, mavlinkConnected) {
+            const systemStatusEl = document.getElementById('system-status-value');
+            const nlpStatusEl = document.getElementById('nlp-status-value');
+            const agentStatusEl = document.getElementById('agent-status-value');
+            const mavlinkStatusEl = document.getElementById('mavlink-status-value');
+            
+            // System status
+            const statusIndicator = systemStatusEl.querySelector('.status-indicator');
+            if (status === 'ready') {
+                statusIndicator.className = 'status-indicator online';
+                systemStatusEl.innerHTML = '<span class="status-indicator online"></span>Ready';
+            } else if (status === 'error') {
+                statusIndicator.className = 'status-indicator offline';
+                systemStatusEl.innerHTML = '<span class="status-indicator offline"></span>Error';
+            } else {
+                statusIndicator.className = 'status-indicator warning';
+                systemStatusEl.innerHTML = '<span class="status-indicator warning"></span>' + 
+                    status.charAt(0).toUpperCase() + status.slice(1);
+            }
+            
+            // NLP status
+            nlpStatusEl.innerHTML = nlpReady ? 
+                '<span class="status-indicator online"></span>Ready' : 
+                '<span class="status-indicator offline"></span>Offline';
+            
+            // Agent status
+            agentStatusEl.innerHTML = agentReady ? 
+                '<span class="status-indicator online"></span>Ready' : 
+                '<span class="status-indicator offline"></span>Offline';
+            
+            // MAVLink status
+            mavlinkStatusEl.innerHTML = mavlinkConnected ? 
+                '<span class="status-indicator online"></span>Connected' : 
+                '<span class="status-indicator offline"></span>Disconnected';
+        }
+        
+        function updateVehicleStatus(vehicleState) {
+            if (!vehicleState || !vehicleState.vehicle_state) return;
+            
+            const vs = vehicleState.vehicle_state;
+            
+            document.getElementById('armed-status').textContent = vs.armed ? 'ARMED' : 'DISARMED';
+            document.getElementById('flight-mode').textContent = vs.mode || 'Unknown';
+            document.getElementById('battery-level').textContent = 
+                vs.battery_voltage ? `${vs.battery_voltage.toFixed(1)}V` : '--.-V';
+            document.getElementById('gps-sats').textContent = vs.gps_satellites || '0';
+            document.getElementById('altitude').textContent = 
+                vs.altitude_relative ? `${vs.altitude_relative.toFixed(1)}m` : '0.0m';
+            document.getElementById('groundspeed').textContent = 
+                vs.groundspeed ? `${vs.groundspeed.toFixed(1)} m/s` : '0.0 m/s';
+        }
+        
+        function updateLastCommand(command, response) {
+            document.getElementById('last-command').textContent = command || 'None';
+            document.getElementById('last-response').textContent = response || 'None';
+        }
+        
+        function updateUptime(uptime) {
+            if (uptime) {
+                const hours = Math.floor(uptime / 3600);
+                const minutes = Math.floor((uptime % 3600) / 60);
+                const seconds = Math.floor(uptime % 60);
+                document.getElementById('uptime-value').textContent = 
+                    `${hours}h ${minutes}m ${seconds}s`;
+            }
+        }
+        
+        function updateUIState() {
+            const canSendCommands = systemReady && !processing;
+            
+            commandInput.disabled = !canSendCommands;
+            sendCommandBtn.disabled = !canSendCommands;
+            emergencyStopBtn.disabled = !systemReady;
+            
+            if (processing) {
+                sendCommandBtn.innerHTML = '<span class="loading"></span> Processing...';
+            } else {
+                sendCommandBtn.innerHTML = 'Send Command';
+            }
+        }
+        
+        function addLogEntry(message, level = 'INFO', timestamp = null) {
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry ${level}`;
+            
+            const time = timestamp || new Date().toLocaleTimeString();
+            logEntry.innerHTML = `<span class="log-timestamp">[${time}]</span> ${message}`;
+            
+            logsContainer.appendChild(logEntry);
+            logsContainer.scrollTop = logsContainer.scrollHeight;
+        }
+        
+        function showCommandResponse(response) {
+            responseContainer.style.display = 'block';
+            responseContainer.className = `response-container ${response.success ? 'success' : 'error'}`;
+            responseContent.textContent = response.response;
+            
+            if (response.success && response.mission_id) {
+                missionInfo.style.display = 'grid';
+                document.getElementById('mission-id').textContent = response.mission_id;
+                document.getElementById('safety-level').textContent = response.safety_assessment || '-';
+                document.getElementById('mission-duration').textContent = 
+                    response.estimated_duration ? `${response.estimated_duration}s` : '-';
+                document.getElementById('command-count').textContent = 
+                    response.commands_sent || response.commands_planned || '-';
+            } else {
+                missionInfo.style.display = 'none';
+            }
+        }
+        
+        // Event handlers
+        sendCommandBtn.addEventListener('click', function() {
+            const command = commandInput.value.trim();
+            if (!command || processing || !systemReady) return;
+            
+            processing = true;
+            updateUIState();
+            
+            socket.emit('send_command', { command: command });
+            commandInput.value = '';
+        });
+        
+        commandInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && !processing && systemReady) {
+                sendCommandBtn.click();
+            }
+        });
+        
+        emergencyStopBtn.addEventListener('click', function() {
+            if (confirm('Are you sure you want to execute an emergency stop?')) {
+                fetch('/api/emergency_stop', { method: 'POST' })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            addLogEntry('Emergency stop executed', 'WARNING');
+                        } else {
+                            addLogEntry('Emergency stop failed', 'ERROR');
+                        }
+                    });
+            }
+        });
+        
+        // Quick command buttons
+        document.querySelectorAll('.quick-cmd-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const command = this.getAttribute('data-command');
+                commandInput.value = command;
+            });
+        });
+        
+        // Control buttons
+        document.getElementById('reconnect-btn').addEventListener('click', function() {
+            fetch('/api/reconnect_mavlink', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        addLogEntry('MAVLink reconnection successful', 'SUCCESS');
+                    } else {
+                        addLogEntry('MAVLink reconnection failed', 'ERROR');
+                    }
+                });
+        });
+        
+        document.getElementById('clear-logs-btn').addEventListener('click', function() {
+            logsContainer.innerHTML = '';
+        });
+        
+        document.getElementById('refresh-status-btn').addEventListener('click', function() {
+            fetch('/api/system_status')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.system_state) {
+                        updateSystemStatus(
+                            data.system_state.status,
+                            data.system_state.nlp_ready,
+                            data.system_state.agent_ready,
+                            data.system_state.mavlink_connected
+                        );
+                    }
+                });
+        });
+        
+        // Initialize UI
+        updateUIState();
+        
+        // Periodic status updates
+        setInterval(function() {
+            fetch('/api/system_status')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.system_state) {
+                        updateUptime(data.system_state.uptime);
+                    }
+                })
+                .catch(err => console.log('Status update failed:', err));
+        }, 5000);
+    </script>
+</body>
+</html>

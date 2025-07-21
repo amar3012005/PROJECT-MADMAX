@@ -1,0 +1,123 @@
+graph TD
+    %% MADMAX Simplified Workflow - GCS to Hexacopter
+    
+    %% Step 1: User Input
+    A[👤 User] -->|"Take off to 10m"| B[🌐 Web Interface]
+    
+    %% Step 2: Command Processing
+    B -->|HTTP Request| C[🖥️ Web Server]
+    C -->|Parse Command| D[📝 Command Parser]
+    
+    %% Step 3: Simple Intent Recognition
+    D -->|Extract Intent| E{🧠 Intent Type?}
+    E -->|TAKEOFF| F1[⬆️ Takeoff Command]
+    E -->|LAND| F2[⬇️ Land Command]
+    E -->|MOVE| F3[➡️ Move Command]
+    E -->|RTL| F4[🏠 Return Home]
+    
+    %% Step 4: Safety Check
+    F1 --> G[🛡️ Safety Check]
+    F2 --> G
+    F3 --> G
+    F4 --> G
+    
+    %% Step 5: MAVLink Generation
+    G -->|Safe to Execute| H[📡 Generate MAVLink]
+    G -->|Unsafe| I[❌ Reject Command]
+    
+    %% Step 6: Send to Flight Controller
+    H -->|MAVLink Protocol| J[🔌 Serial/USB]
+    J -->|UART| K[🎛️ Pixhawk 6C]
+    
+    %% Step 7: Flight Controller Processing
+    K -->|Process Command| L[⚙️ ArduPilot]
+    L -->|Control Motors| M[🚁 Hexacopter]
+    
+    %% Step 8: Telemetry Feedback
+    K -->|Status Data| N[📊 Telemetry]
+    N -->|MAVLink Messages| J
+    J -->|Update Status| C
+    C -->|Real-time Update| B
+    B -->|Display Status| A
+    
+    %% Advanced Mission Capabilities
+    subgraph "Mission Types"
+        M1[🗺️ Pre-planned Mission<br/>Waypoint Navigation]
+        M2[🎯 Object Detection Mission<br/>Target Search & Track]
+        M3[📡 Survey Mission<br/>Area Mapping]
+    end
+    
+    %% Mission Selection
+    E -->|MISSION| M1
+    E -->|SEARCH| M2
+    E -->|SURVEY| M3
+    
+    M1 --> G
+    M2 --> O1[📷 Computer Vision]
+    M3 --> G
+    
+    %% Object Detection Pipeline
+    O1 -->|YOLOv8/OpenCV| O2[🔍 Target Detection]
+    O2 -->|Object Found| O3[📍 GPS Coordinates]
+    O2 -->|No Object| O4[🔄 Continue Search]
+    O3 --> O5[📡 LoRa Transmission]
+    O4 --> O1
+    
+    %% LoRa Communication
+    O5 -->|Long Range Radio| P1[📡 LoRa Module]
+    P1 -->|RF Signal| P2[📡 GCS LoRa Receiver]
+    P2 -->|Target Found Alert| C
+    
+    %% Additional Telemetry via LoRa
+    N -->|Backup Telemetry| P1
+    P1 -->|Long Range Data| P2
+    
+    %% Emergency Systems
+    Q1[🚨 Emergency Stop] -->|Direct Command| H
+    Q2[🔄 Failsafe Systems] -->|Auto Response| K
+    
+    %% Command Types and Examples
+    subgraph "Command Examples"
+        Q1["'Take off to 10 meters'"]
+        Q2["'Move to coordinates 47.641, -122.140'"]
+        Q3["'Land safely'"]
+        Q4["'Return home'"]
+        Q5["'Emergency stop'"]
+    end
+    
+    %% MAVLink Command Types
+    subgraph "MAVLink Commands"
+        R1[MAV_CMD_NAV_TAKEOFF<br/>Param7: Altitude]
+        R2[MAV_CMD_NAV_WAYPOINT<br/>Param5,6: Lat,Lon<br/>Param7: Alt]
+        R3[MAV_CMD_NAV_LAND<br/>Landing Sequence]
+        R4[MAV_CMD_NAV_RETURN_TO_LAUNCH<br/>RTL Mode]
+        R5[MAV_CMD_DO_FLIGHTTERMINATION<br/>Emergency Stop]
+    end
+    
+    %% System Components
+    subgraph "Hardware Stack"
+        S1[💻 NVIDIA Jetson Orin Nano<br/>Edge AI Computing]
+        S2[🎛️ Pixhawk 6C<br/>Flight Controller]
+        S3[🚁 Hexacopter Frame<br/>Motors + Propellers]
+        S4[📡 Telemetry Radio<br/>Optional]
+    end
+    
+    %% Data Flow Annotations
+    A -.->|"Example: 'Take off to 10 meters'"| Q1
+    Q1 -.-> E
+    F -.->|"FlightIntent.TAKEOFF<br/>altitude=10.0"| G
+    H -.->|"MAV_CMD_NAV_TAKEOFF<br/>param7=10.0"| R1
+    R1 -.-> J
+    
+    %% Styling
+    classDef userInterface fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    classDef aiProcessing fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    classDef communication fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px
+    classDef hardware fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    classDef emergency fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+    
+    class A,B userInterface
+    class C,D,E,E1,E2,F,G,G1,G2,G3,H aiProcessing
+    class I,I1,I2,J,K,N communication
+    class L,L1,L2,L3,M,S1,S2,S3,S4 hardware
+    class O,P,R5 emergency

@@ -1,0 +1,63 @@
+MIT License
+
+Copyright (c) 2024 Amar - MADMAX AI Agentic Aerial Robotics
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+---
+
+ADDITIONAL NOTICES:
+
+This project incorporates third-party software components with their own licenses:
+
+1. ArduPilot - GPLv3 License
+   Copyright (c) ArduPilot Development Team
+   https://github.com/ArduPilot/ardupilot
+
+2. YOLOv8 - AGPL-3.0 License
+   Copyright (c) Ultralytics
+   https://github.com/ultralytics/ultralytics
+
+3. OpenCV - Apache 2.0 License
+   Copyright (c) OpenCV Foundation
+   https://github.com/opencv/opencv
+
+4. pymavlink - LGPLv3 License
+   Copyright (c) ArduPilot Development Team
+   https://github.com/ArduPilot/pymavlink
+
+5. spaCy - MIT License
+   Copyright (c) ExplosionAI GmbH
+   https://github.com/explosion/spaCy
+
+6. Flask - BSD-3-Clause License
+   Copyright (c) Pallets
+   https://github.com/pallets/flask
+
+DISCLAIMER:
+This software is designed for research and educational purposes. Users are 
+responsible for compliance with all applicable laws and regulations, including
+but not limited to aviation regulations (FAA Part 107, EASA, etc.). The 
+authors assume no liability for any damages, accidents, or legal issues 
+arising from the use of this software.
+
+SAFETY NOTICE:
+Always follow proper safety protocols when operating unmanned aerial vehicles.
+Ensure adequate insurance coverage and operate only in authorized airspace.
+Maintain visual line of sight and have appropriate emergency procedures in place.

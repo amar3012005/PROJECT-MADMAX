@@ -1,0 +1,2852 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PROJECT MADMAX - Drone Control Dashboard</title>
+    <!-- Using AJAX instead of WebSockets for compatibility with simplified server -->
+    <style>
+        /* Global styles */
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Orbitron:wght@400;500;600;700&display=swap');
+
+        :root {
+            --bg-dark: #000000;
+            --bg-panel: #0a0a0a;
+            --text-light: #ffffff;
+            --text-medium: #b0b0b0;
+            --accent-main: #ffffff;
+            --accent-secondary: #cccccc;
+            --border-color: #222222;
+            --success-green: #b3ffb3;
+            --warning-orange: #ffcc99;
+            --error-red: #ff9999;
+            --grid-line: rgba(255, 255, 255, 0.08);
+            --highlight: rgba(255, 255, 255, 0.15);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'JetBrains Mono', monospace;
+            background-color: var(--bg-dark);
+            color: var(--text-light);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+            position: relative;
+            background-image: 
+                linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+                radial-gradient(circle, rgba(255, 255, 255, 0.1) 1px, transparent 3px);
+            background-size: 50px 50px, 50px 50px, 100px 100px;
+            background-position: 0 0, 0 0, 25px 25px;
+        }
+
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 100vh;
+            background: 
+                linear-gradient(90deg, transparent 49%, rgba(255, 255, 255, 0.05) 49%, rgba(255, 255, 255, 0.05) 51%, transparent 51%),
+                linear-gradient(180deg, transparent 49%, rgba(255, 255, 255, 0.05) 49%, rgba(255, 255, 255, 0.05) 51%, transparent 51%);
+            background-size: 80px 80px;
+            pointer-events: none;
+            z-index: 0;
+        }
+        
+        /* Project Madmax styles */
+
+        .container {
+            max-width: 1600px;
+            margin: 20px auto;
+            padding: 0 20px;
+            width: 100%;
+            flex-grow: 1;
+            position: relative;
+            z-index: 1;
+        }
+        
+        /* Futuristic corner decorations */
+        .container::before {
+            content: '';
+            position: absolute;
+            top: -5px;
+            left: -5px;
+            width: 20px;
+            height: 20px;
+            border-top: 2px solid var(--accent-main);
+            border-left: 2px solid var(--accent-main);
+            z-index: 2;
+        }
+        
+        .container::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            right: -5px;
+            width: 20px;
+            height: 20px;
+            border-bottom: 2px solid var(--accent-main);
+            border-right: 2px solid var(--accent-main);
+            z-index: 2;
+        }
+
+        /* Header */
+        .header {
+            background-color: var(--bg-panel);
+            border-bottom: 1px solid var(--border-color);
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            clip-path: polygon(0 0, calc(100% - 20px) 0, 100% 20px, 100% 100%, 0 100%);
+            position: relative;
+        }
+
+        .header::before {
+            content: 'PROJECT MADMAX';
+            position: absolute;
+            top: 5px;
+            right: 25px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--accent-main);
+            opacity: 0.7;
+        }
+
+        .header .logo {
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 700;
+            font-size: 20px;
+            color: var(--text-light);
+            letter-spacing: 2px;
+            position: relative;
+            padding-left: 15px;
+        }
+
+        .header .logo::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 8px;
+            height: 20px;
+            background-color: var(--text-light);
+            clip-path: polygon(0 0, 100% 30%, 100% 70%, 0 100%);
+        }
+
+        .header .nav-tabs {
+            display: flex;
+            gap: 2px;
+        }
+
+        .header .nav-tab {
+            color: var(--text-medium);
+            text-decoration: none;
+            padding: 8px 15px;
+            border-radius: 0;
+            transition: all 0.2s ease;
+            position: relative;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-bottom: 2px solid transparent;
+        }
+
+        .header .nav-tab::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background-color: var(--text-light);
+            transition: width 0.3s ease;
+        }
+
+        .header .nav-tab.active::after,
+        .header .nav-tab:hover::after {
+            width: 100%;
+        }
+
+        .header .nav-tab.active,
+        .header .nav-tab:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+            color: var(--text-light);
+        }
+
+        .header .user-section {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            position: relative;
+        }
+
+        .header .search-bar input {
+            background-color: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            border-radius: 0;
+            padding: 8px 10px;
+            color: var(--text-light);
+            outline: none;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+        }
+
+        .header .search-bar input:focus {
+            border-color: var(--text-light);
+        }
+
+        .header .icon-btn {
+            background: none;
+            border: none;
+            color: var(--text-medium);
+            font-size: 14px;
+            cursor: pointer;
+            padding: 5px;
+            transition: color 0.2s ease, background-color 0.2s ease;
+            position: relative;
+        }
+
+        .header .icon-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border: 1px solid var(--border-color);
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        .header .icon-btn:hover::before {
+            opacity: 1;
+        }
+
+        .header .icon-btn:hover {
+            color: var(--text-light);
+        }
+
+        .header .user-avatar {
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: black;
+            font-size: 14px;
+            position: relative;
+            background-color: var(--text-light);
+            clip-path: polygon(0 0, 100% 0, 100% 70%, 70% 100%, 0 100%);
+        }
+
+        .header .date-range {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .header select {
+            background-color: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            color: var(--text-light);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            padding: 5px;
+            appearance: none;
+            padding-right: 15px;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8' viewBox='0 0 8 8'%3E%3Cpath fill='%23ffffff' d='M0 2l4 4 4-4z'%3E%3C/path%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 5px center;
+        }
+
+        /* Dashboard Grid Layout */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 280px 1fr 380px; /* Optimized column widths for better balance */
+            grid-template-rows: 100px 1fr 1fr 1fr; /* Reduced command row height */
+            gap: 8px; /* Reduced gap for more compact layout */
+            margin-bottom: 15px;
+            max-height: calc(100vh - 100px); /* More compact height */
+            overflow: hidden;
+        }
+
+        /* Panel Base Style */
+        .panel {
+            background-color: var(--bg-panel);
+            padding: 15px; /* Reduced padding for compactness */
+            position: relative;
+            overflow: hidden; /* For inner elements like charts */
+            border: 1px solid var(--border-color);
+            clip-path: polygon(
+                0 0,
+                calc(100% - 15px) 0,
+                100% 15px,
+                100% 100%,
+                0 100%
+            );
+        }
+        
+        .panel::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: repeating-linear-gradient(
+                -45deg,
+                rgba(255, 255, 255, 0.01),
+                rgba(255, 255, 255, 0.01) 10px,
+                transparent 10px,
+                transparent 20px
+            );
+            pointer-events: none;
+        }
+        
+        .panel::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 30px;
+            height: 30px;
+            background-image: linear-gradient(135deg, transparent 15px, var(--border-color) 15px, var(--border-color) 16px, var(--bg-panel) 16px);
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px; /* Reduced margin for compactness */
+            padding-bottom: 8px; /* Reduced padding */
+            border-bottom: 1px solid var(--border-color);
+            position: relative;
+        }
+        
+        .panel-header::before {
+            content: '';
+            position: absolute;
+            left: -20px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 10px;
+            height: 2px;
+            background-color: var(--text-light);
+        }
+
+        .panel-title {
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 500;
+            font-size: 12px; /* Reduced font size for compactness */
+            color: var(--text-light);
+            letter-spacing: 0.8px; /* Reduced letter spacing */
+            text-transform: uppercase;
+        }
+
+        .panel-options select {
+            background-color: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            border-radius: 0;
+            padding: 5px 10px;
+            color: var(--text-light);
+            outline: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8' viewBox='0 0 8 8'%3E%3Cpath fill='%23ffffff' d='M0 2l4 4 4-4z'%3E%3C/path%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 8px center;
+            background-size: 8px;
+            padding-right: 25px;
+        }
+        
+        /* Grid patterns within panels */
+        .panel-inner-grid {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+            background-size: 15px 15px;
+            pointer-events: none;
+        }
+
+        /* Specific Panel Styles */
+        /* Command Panel - Now positioned at the top */
+        .command-panel {
+            grid-column: 1 / -1; /* Span all columns */
+            grid-row: 1 / 2; /* Position at the top row */
+            margin: 0;
+        }
+
+        /* Telemetry Panel - Leftmost */
+        .drone-telemetry-panel {
+            grid-column: 1 / 2;
+            grid-row: 2 / 5; /* Spans rows 2-4 (after command panel) */
+            height: 100%;
+            max-height: calc(100vh - 250px); /* Reduced height */
+        }
+
+        /* System Log Panel - Rightmost */
+        .system-log-panel {
+            grid-column: 3 / 4;
+            grid-row: 2 / 5; /* Spans rows 2-4 (after command panel) */
+        }
+
+        /* Middle Content Panels */
+        .overview-panel {
+            grid-column: 2 / 3;
+            grid-row: 2 / 3;
+        }
+
+        .revenue-panel {
+            grid-column: 2 / 3;
+            grid-row: 3 / 4;
+        }
+
+        .weekly-traffic-panel {
+            grid-column: 2 / 3;
+            grid-row: 4 / 5;
+        }
+
+        /* Remove unused panel positions */
+        .attitude-data-panel,
+        .customer-time-panel {
+            display: none;
+        }
+
+        /* Adjust telemetry panel content for compactness */
+        .drone-telemetry-panel .altitude-bar-container {
+            height: 80px; /* Further reduced height for compactness */
+            margin: 10px 0; /* Reduced margins */
+        }
+
+        .drone-telemetry-panel .main-metric {
+            font-size: 1.8em; /* Reduced font size for compactness */
+            margin-bottom: 3px; /* Reduced margin */
+        }
+
+        .drone-telemetry-panel {
+            grid-column: 1 / 2;
+            grid-row: 2 / 5;
+            height: 100%;
+            max-height: calc(100vh - 200px); /* Optimized height */
+            padding: 12px; /* Reduced padding */
+        }
+
+        .main-metric {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2.5em;
+            font-weight: 700;
+            color: var(--text-light);
+            margin-bottom: 5px;
+            position: relative;
+            display: inline-block;
+        }
+        
+        .main-metric::after {
+            content: 'M';
+            position: absolute;
+            right: -20px;
+            bottom: 5px;
+            font-size: 12px;
+            opacity: 0.7;
+        }
+        
+        .altitude-display {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 10px 0;
+        }
+        
+        .altitude-label {
+            color: var(--success-green); 
+            font-size: 12px;
+            margin-left: 5px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        
+        .altitude-label.asl {
+            color: var(--warning-orange);
+        }
+        
+        .altitude-bar-container {
+            width: 35px;
+            height: 140px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            position: relative;
+            margin: 15px 0;
+            border-radius: 2px;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.4);
+            background-image: linear-gradient(
+                to bottom,
+                transparent,
+                transparent 10%,
+                rgba(255, 255, 255, 0.03) 10%,
+                rgba(255, 255, 255, 0.03) 20%,
+                transparent 20%,
+                transparent 30%,
+                rgba(255, 255, 255, 0.03) 30%,
+                rgba(255, 255, 255, 0.03) 40%,
+                transparent 40%,
+                transparent 50%,
+                rgba(255, 255, 255, 0.03) 50%,
+                rgba(255, 255, 255, 0.03) 60%,
+                transparent 60%,
+                transparent 70%,
+                rgba(255, 255, 255, 0.03) 70%,
+                rgba(255, 255, 255, 0.03) 80%,
+                transparent 80%,
+                transparent 90%,
+                rgba(255, 255, 255, 0.03) 90%,
+                rgba(255, 255, 255, 0.03) 100%
+            );
+        }
+        
+        .altitude-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: linear-gradient(to top, 
+                var(--text-light) 0%, 
+                var(--success-green) 100%);
+            height: 0%;
+            transition: height 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+            box-shadow: 0 0 5px rgba(255, 255, 255, 0.2);
+        }
+
+        .altitude-bar.fast-ascent {
+            background: linear-gradient(to top, 
+                var(--text-light) 0%, 
+                var(--warning-orange) 50%,
+                var(--success-green) 100%);
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.4);
+            animation: pulse-altitude 0.5s infinite alternate;
+        }
+
+        .altitude-bar.normal-ascent {
+            background: linear-gradient(to top, 
+                var(--text-light) 0%, 
+                var(--success-green) 100%);
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+        }
+
+        .altitude-bar.slow-ascent {
+            background: linear-gradient(to top, 
+                var(--text-light) 0%, 
+                var(--success-green) 100%);
+            opacity: 0.9;
+        }
+        
+        @keyframes pulse-altitude {
+            from { opacity: 0.9; }
+            to { opacity: 1; }
+        }
+        
+        .altitude-marker {
+            position: absolute;
+            right: -40px;
+            font-size: 10px;
+            color: var(--text-medium);
+            font-family: 'JetBrains Mono', monospace;
+        }
+        
+        .altitude-marker::before {
+            content: '';
+            position: absolute;
+            right: 45px;
+            top: 50%;
+            width: 10px;
+            height: 1px;
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .battery-bar {
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            overflow: hidden;
+            margin-top: 5px;
+            position: relative;
+        }
+        
+        .battery-bar::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: repeating-linear-gradient(
+                90deg,
+                transparent,
+                transparent 5px,
+                rgba(255, 255, 255, 0.05) 5px,
+                rgba(255, 255, 255, 0.05) 10px
+            );
+        }
+
+        .battery-fill {
+            height: 100%;
+            background: var(--text-light);
+            transition: width 0.5s ease;
+            position: relative;
+        }
+        
+        .battery-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 1px;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+        }
+
+        .telemetry-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 6px; /* Further reduced gap for compactness */
+            margin-top: 10px; /* Reduced margin */
+            position: relative;
+            z-index: 2;
+        }
+
+        .telemetry-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 2px; /* Further reduced padding for compactness */
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 9px; /* Smaller font size for compactness */
+            position: relative;
+        }
+        
+        .telemetry-item::before {
+            content: '';
+            position: absolute;
+            left: -5px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 3px;
+            height: 3px;
+            background: var(--text-light);
+        }
+
+        .telemetry-label {
+            color: var(--text-medium);
+            font-family: 'JetBrains Mono', monospace;
+            text-transform: uppercase;
+            font-size: 8px; /* Further reduced font size for compactness */
+            letter-spacing: 0.3px; /* Reduced letter spacing */
+        }
+
+        .telemetry-value {
+            color: var(--text-light);
+            font-weight: 500;
+            font-family: 'JetBrains Mono', monospace;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 1px 3px; /* Further reduced padding */
+            min-width: 40px; /* Reduced min-width for compactness */
+            text-align: right;
+            transition: background-color 0.3s ease;
+            font-size: 9px; /* Reduced font size for compactness */
+        }
+        
+        .telemetry-value.value-changed {
+            animation: flash-value 0.8s ease;
+        }
+        
+        @keyframes flash-value {
+            0% { background-color: rgba(255, 255, 255, 0.05); }
+            30% { background-color: rgba(255, 255, 255, 0.3); }
+            100% { background-color: rgba(255, 255, 255, 0.05); }
+        }
+        
+        @keyframes flash-value-increase {
+            0% { background-color: rgba(255, 255, 255, 0.05); }
+            30% { background-color: rgba(179, 255, 179, 0.3); }
+            100% { background-color: rgba(255, 255, 255, 0.05); }
+        }
+        
+        @keyframes flash-value-decrease {
+            0% { background-color: rgba(255, 255, 255, 0.05); }
+            30% { background-color: rgba(255, 204, 153, 0.3); }
+            100% { background-color: rgba(255, 255, 255, 0.05); }
+        }
+        
+        .telemetry-value.value-increasing {
+            animation: flash-value-increase 1.2s ease;
+            color: var(--success-green);
+        }
+        
+        .telemetry-value.value-decreasing {
+            animation: flash-value-decrease 1.2s ease;
+            color: var(--warning-orange);
+        }
+        
+        .telemetry-value-with-indicator {
+            display: flex;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 2px 5px;
+            min-width: 80px;
+            justify-content: flex-end;
+        }
+        
+        .vertical-speed-indicator {
+            margin-left: 5px;
+            width: 10px;
+            height: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        
+        .speed-arrow {
+            width: 0;
+            height: 0;
+            border-left: 5px solid transparent;
+            border-right: 5px solid transparent;
+            opacity: 0.3;
+            transition: opacity 0.3s ease, border-color 0.3s ease;
+        }
+        
+        .speed-arrow.up {
+            border-bottom: 5px solid var(--text-light);
+        }
+        
+        .speed-arrow.down {
+            border-top: 5px solid var(--text-light);
+        }
+        
+        .speed-arrow.active {
+            opacity: 1;
+        }
+        
+        .speed-arrow.up.positive {
+            border-bottom-color: var(--success-green);
+        }
+        
+        .speed-arrow.down.negative {
+            border-top-color: var(--warning-orange);
+        }
+
+        .drone-icon-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px 0 8px; /* Reduced padding for compactness */
+            margin-top: 8px; /* Reduced margin */
+            position: relative;
+            perspective: 800px;
+            height: 140px; /* Reduced height for compactness */
+        }
+        
+        .drone-icon-container::before {
+            content: '';
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 120px;
+            height: 120px;
+            border: 1px dashed rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+        }
+        
+        .drone-icon-container {
+            --shadow-scale: 1;
+            --shadow-opacity: 0.5;
+        }
+
+        .drone-icon-container::after {
+            content: '';
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%) scale(var(--shadow-scale, 1));
+            width: 60px;
+            height: 10px;
+            background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.3) 0%, rgba(255, 255, 255, 0) 70%);
+            border-radius: 50%;
+            transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1);
+            opacity: var(--shadow-opacity, 0.5);
+        }
+        
+        .drone-icon-container.flying {
+            animation: drone-hover 4s ease-in-out infinite;
+        }
+        
+        .drone-icon-container.flying::after {
+            --shadow-opacity: 0.1;
+            --shadow-scale: 0.5;
+            width: 30px;
+            height: 5px;
+        }
+        
+        @keyframes drone-hover {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+
+        .hexacopter {
+            position: relative;
+            width: 70px; /* Reduced size for compactness */
+            height: 70px; /* Reduced size for compactness */
+            background: linear-gradient(135deg, 
+                rgba(255, 255, 255, 0.05) 0%, 
+                rgba(255, 255, 255, 0.02) 50%,
+                rgba(255, 255, 255, 0.05) 100%);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.15), inset 0 0 15px rgba(255, 255, 255, 0.05);
+            animation: pulse-drone 2s infinite alternate;
+            clip-path: polygon(50% 0%, 93% 25%, 93% 75%, 50% 100%, 7% 75%, 7% 25%);
+            transition: transform 0.8s cubic-bezier(0.23, 1, 0.32, 1);
+        }
+
+        .hexacopter .body {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            background: var(--text-light);
+            clip-path: polygon(50% 0%, 93% 25%, 93% 75%, 50% 100%, 7% 75%, 7% 25%);
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.2), 0 0 20px rgba(255, 255, 255, 0.1);
+        }
+
+        .hexacopter .propeller {
+            position: absolute;
+            width: 25px; /* Increased width for more realistic blade */
+            height: 2px; /* Thin blade */
+            background: var(--text-light);
+            /* Removed clip-path to make it a rectangle */
+            border-radius: 1px; /* Slightly rounded edges */
+            animation: rotate-propeller 0.1s linear infinite;
+            transform-origin: center center; /* Ensure rotation around its center */
+            opacity: 0.8; /* Base opacity */
+            box-shadow: 0 0 5px rgba(255, 255, 255, 0.2); /* Subtle glow */
+        }
+
+        /* Corrected propeller positions for a hexacopter */
+        .hexacopter .p1 { top: 10%; left: 50%; transform: translate(-50%, -50%) rotate(0deg); }
+        .hexacopter .p2 { top: 25%; left: 85%; transform: translate(-50%, -50%) rotate(60deg); }
+        .hexacopter .p3 { top: 75%; left: 85%; transform: translate(-50%, -50%) rotate(120deg); }
+        .hexacopter .p4 { top: 90%; left: 50%; transform: translate(-50%, -50%) rotate(180deg); }
+        .hexacopter .p5 { top: 75%; left: 15%; transform: translate(-50%, -50%) rotate(240deg); }
+        .hexacopter .p6 { top: 25%; left: 15%; transform: translate(-50%, -50%) rotate(300deg); }
+
+        @keyframes rotate-propeller {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        @keyframes rotate-propeller-fast {
+            0% { transform: rotate(0deg); opacity: 0.2; box-shadow: 0 0 10px rgba(255, 255, 255, 0.5); }
+            100% { transform: rotate(360deg); opacity: 0.1; box-shadow: 0 0 15px rgba(255, 255, 255, 0.7); } /* More blur and glow */
+        }
+
+        @keyframes pulse-drone {
+            0% { box-shadow: 0 0 10px rgba(255, 255, 255, 0.1); }
+            50% { box-shadow: 0 0 25px rgba(255, 255, 255, 0.2); }
+            100% { box-shadow: 0 0 10px rgba(255, 255, 255, 0.1); }
+        }
+        
+        @keyframes pulse-drone-flying {
+            0% { box-shadow: 0 0 15px rgba(255, 255, 255, 0.2), inset 0 0 5px rgba(255, 255, 255, 0.05); }
+            50% { box-shadow: 0 0 35px rgba(255, 255, 255, 0.4), inset 0 0 10px rgba(255, 255, 255, 0.1); }
+            100% { box-shadow: 0 0 15px rgba(255, 255, 255, 0.2), inset 0 0 5px rgba(255, 255, 255, 0.05); }
+        }
+        
+        @keyframes pulse-drone-rapid-ascent {
+            0% { box-shadow: 0 0 25px rgba(255, 255, 255, 0.3), inset 0 0 10px rgba(255, 255, 255, 0.1); }
+            50% { box-shadow: 0 0 50px rgba(255, 255, 255, 0.5), inset 0 0 20px rgba(255, 255, 255, 0.2); }
+            100% { box-shadow: 0 0 25px rgba(255, 255, 255, 0.3), inset 0 0 10px rgba(255, 255, 255, 0.1); }
+        }
+        
+        .propeller.active {
+            animation: rotate-propeller-fast 0.05s linear infinite; /* Faster rotation for blur */
+            opacity: 0.15; /* Make it more transparent to simulate blur */
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.5); /* Enhanced blur effect */
+        }
+        
+        .propeller.high-speed {
+            animation: rotate-propeller-fast 0.02s linear infinite; /* Even faster rotation */
+            opacity: 0.08; /* Even more transparent for extreme blur */
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.8); /* Stronger glow/blur */
+        }
+
+        /* Chart Styles */
+        .revenue-bars-container {
+            display: flex;
+            justify-content: space-around;
+            align-items: flex-end;
+            height: 120px; /* Reduced height for compactness */
+            margin-bottom: 10px; /* Reduced margin */
+            padding: 0 4px; /* Reduced padding */
+            gap: 6px; /* Reduced gap */
+            position: relative;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            border-left: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.5);
+        }
+        
+        .revenue-bars-container::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+            background-size: 20px 20px;
+            pointer-events: none;
+            opacity: 0.5;
+        }
+
+        .revenue-bar {
+            width: 5px;
+            background: linear-gradient(to top, 
+                var(--text-light) 0%,
+                rgba(255, 255, 255, 0.7) 100%);
+            transition: height 0.5s ease;
+            position: relative;
+            border-radius: 2px;
+            box-shadow: 0 0 8px rgba(255, 255, 255, 0.2);
+        }
+        
+        .revenue-bar::before {
+            content: '';
+            position: absolute;
+            top: -5px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 10px;
+            height: 2px;
+            background-color: var(--text-light);
+            box-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+        }
+        
+        .revenue-bar::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 10px;
+            height: 1px;
+            background-color: var(--text-light);
+        }
+        
+        .revenue-bar:nth-child(3n+1) {
+            background: linear-gradient(to top, 
+                var(--text-light) 0%,
+                var(--success-green) 100%);
+        }
+        
+        .revenue-bar:nth-child(3n+2) {
+            background: linear-gradient(to top, 
+                var(--text-light) 0%,
+                var(--warning-orange) 100%);
+        }
+
+        .traffic-chart-container {
+            position: relative;
+            height: 160px; /* Reduced height for compactness */
+            margin-top: 10px; /* Reduced margin */
+            border-left: 1px solid rgba(255, 255, 255, 0.1);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 15px; /* Reduced padding */
+        }
+        
+        .traffic-chart-container::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: calc(100% - 20px);
+            background-image: 
+                linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+            background-size: 20px 20px;
+            pointer-events: none;
+        }
+
+        .traffic-chart-svg {
+            width: calc(100% - 10px);
+            height: 120px; /* Reduced height for compactness */
+            overflow: visible;
+            margin-left: 10px;
+        }
+
+        .traffic-chart-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 8px;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--text-medium);
+            position: absolute;
+            bottom: 0;
+            left: 10px;
+            width: calc(100% - 10px);
+            padding: 0 10px;
+        }
+
+        .traffic-chart-y-axis {
+            position: absolute;
+            left: -30px;
+            top: 0;
+            height: 150px;
+            display: flex;
+            flex-direction: column-reverse;
+            justify-content: space-between;
+            font-size: 8px;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--text-medium);
+            text-align: right;
+            width: 30px;
+        }
+
+        .customer-time-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr); /* Days of the week */
+            grid-template-rows: repeat(8, 1fr); /* 8 time slots */
+            gap: 2px; /* Reduced gap for compactness */
+            height: 160px; /* Reduced height for compactness */
+            margin-top: 10px; /* Reduced margin */
+        }
+
+        .time-cell {
+            background-color: var(--text-light);
+            opacity: 0.1; /* Base opacity */
+            transition: opacity 0.3s ease;
+            position: relative;
+        }
+        
+        .time-cell::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: repeating-linear-gradient(
+                45deg,
+                rgba(255, 255, 255, 0.1),
+                rgba(255, 255, 255, 0.1) 2px,
+                transparent 2px,
+                transparent 4px
+            );
+            opacity: 0.5;
+        }
+
+        .time-labels {
+            grid-column: 1 / -1; /* spans all columns */
+            display: flex;
+            justify-content: space-around;
+            font-size: 8px;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--text-medium);
+            margin-top: 5px;
+        }
+
+        .day-labels {
+            grid-row: 1 / -1; /* spans all rows */
+            display: flex;
+            flex-direction: column;
+            justify-content: space-around;
+            font-size: 8px;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--text-medium);
+            text-align: right;
+            margin-right: 5px;
+        }
+
+        /* Log panel and command-processing-popup */
+        .log-panel {
+            grid-column: 3 / 4; /* Place in third column */
+            grid-row: 1 / span 4; /* Span all four rows */
+            background-color: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            padding: 12px; /* Reduced padding for compactness */
+            height: calc(100vh - 120px); /* Optimized height */
+            overflow: hidden;
+            position: relative;
+            clip-path: polygon(
+                0 0,
+                calc(100% - 15px) 0,
+                100% 15px,
+                100% 100%,
+                15px 100%,
+                0 calc(100% - 15px)
+            );
+        }
+        
+        .log-panel::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                repeating-linear-gradient(
+                    -45deg,
+                    rgba(255, 255, 255, 0.01),
+                    rgba(255, 255, 255, 0.01) 10px,
+                    transparent 10px,
+                    transparent 20px
+                );
+            pointer-events: none;
+        }
+        
+        .log-panel::after {
+            content: 'SYSTEM LOG';
+            position: absolute;
+            top: 4px;
+            right: 22px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 8px;
+            color: var(--text-light);
+            opacity: 0.5;
+        }
+
+        .log-container {
+            height: calc(100% - 80px); /* Reduced height for compactness */
+            overflow-y: auto;
+            padding-right: 8px; /* Reduced padding */
+            position: relative;
+            font-family: 'JetBrains Mono', monospace;
+            scrollbar-width: thin;
+            scrollbar-color: var(--text-light) rgba(255, 255, 255, 0.05);
+            box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 8px; /* Reduced padding */
+            background-color: rgba(0, 0, 0, 0.2);
+            border-radius: 2px;
+            margin-bottom: 8px; /* Reduced margin */
+        }
+        
+        .log-status-bar {
+            display: flex;
+            padding: 3px 0; /* Reduced padding */
+            margin-bottom: 8px; /* Reduced margin */
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            color: var(--text-medium);
+        }
+        
+        .log-filter {
+            padding: 2px 8px;
+            margin-right: 5px;
+            cursor: pointer;
+            opacity: 0.5;
+            transition: all 0.2s ease;
+            background: rgba(255, 255, 255, 0.05);
+        }
+        
+        .log-filter:hover {
+            opacity: 0.8;
+        }
+        
+        .log-filter.active {
+            opacity: 1;
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-light);
+            box-shadow: 0 0 5px rgba(255, 255, 255, 0.1);
+        }
+        
+        .log-counter {
+            margin-left: auto;
+            padding: 2px 8px;
+            background: rgba(255, 255, 255, 0.05);
+        }
+        
+        .log-details {
+            display: flex;
+            justify-content: space-between;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: var(--text-medium);
+            padding: 5px 0;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+        
+        .status-indicator.online {
+            background-color: var(--success-green);
+            box-shadow: 0 0 5px var(--success-green);
+            animation: pulse-status 2s infinite alternate;
+        }
+        
+        @keyframes pulse-status {
+            from { opacity: 0.7; }
+            to { opacity: 1; }
+        }
+        
+        #log-timestamp {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: var(--text-medium);
+            margin-right: 10px;
+            letter-spacing: 0.5px;
+        }
+        
+        .log-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+            background-size: 100% 20px;
+            pointer-events: none;
+        }
+
+        .log-container::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .log-container::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .log-container::-webkit-scrollbar-thumb {
+            background: var(--text-light);
+        }
+
+        .log-entry {
+            font-size: 10px; /* Reduced font size for compactness */
+            padding: 2px 0 2px 8px; /* Reduced padding */
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            animation: fadeIn 0.5s ease-in;
+            color: var(--text-medium);
+            position: relative;
+            line-height: 1.3; /* Reduced line height for compactness */
+        }
+        
+        .log-entry::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 3px;
+            height: 3px;
+            background: var(--text-medium);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Log level colors and styling */
+        .log-level-SYSTEM { 
+            color: var(--text-light); 
+            border-left: 2px solid var(--text-light);
+            padding-left: 8px;
+            font-weight: 500;
+        }
+        .log-level-INFO { 
+            color: var(--text-light); 
+        }
+        .log-level-SUCCESS { 
+            color: var(--success-green); 
+            border-left: 2px solid var(--success-green);
+            padding-left: 8px;
+        }
+        .log-level-WARN { 
+            color: var(--warning-orange); 
+            border-left: 2px solid var(--warning-orange);
+            padding-left: 8px;
+        }
+        .log-level-ERROR { 
+            color: var(--error-red); 
+            border-left: 2px solid var(--error-red);
+            padding-left: 8px;
+            font-weight: 500;
+        }
+        .log-level-DEBUG { 
+            color: var(--text-medium); 
+            opacity: 0.7;
+        }
+
+        .command-processing-popup {
+            position: absolute;
+            top: 15px; /* Reduced top margin */
+            right: 400px; /* Adjusted for new compact layout */
+            background: var(--bg-panel);
+            border: 1px solid var(--text-light);
+            padding: 12px; /* Reduced padding for compactness */
+            z-index: 1000;
+            width: 320px; /* Reduced width for compactness */
+            max-height: 350px; /* Reduced max height */
+            overflow-y: auto;
+            display: none;
+            flex-direction: column;
+            gap: 8px; /* Reduced gap */
+            animation: fadeInScale 0.3s ease-out forwards;
+            clip-path: polygon(
+                0 0,
+                calc(100% - 15px) 0,
+                100% 15px,
+                100% 100%,
+                15px 100%,
+                0 calc(100% - 15px)
+            );
+        }
+
+        @keyframes fadeInScale {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .command-processing-popup .panel-title {
+            margin-bottom: 10px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid var(--text-light);
+            color: var(--text-light);
+            font-family: 'Orbitron', sans-serif;
+            font-size: 12px;
+            letter-spacing: 1px;
+            position: relative;
+            padding-left: 15px;
+        }
+        
+        .command-processing-popup .panel-title::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 8px;
+            height: 2px;
+            background-color: var(--text-light);
+        }
+
+        .processing-steps {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            position: relative;
+        }
+        
+        .processing-steps::before {
+            content: '';
+            position: absolute;
+            left: 12px;
+            top: 24px;
+            bottom: 20px;
+            width: 1px;
+            background: rgba(255, 255, 255, 0.2);
+            z-index: 0;
+        }
+
+        .processing-step {
+            display: flex;
+            align-items: center;
+            gap: 8px; /* Reduced gap */
+            padding: 6px; /* Reduced padding for compactness */
+            background: rgba(255, 255, 255, 0.05);
+            opacity: 0;
+            transform: translateX(-10px);
+            transition: all 0.3s ease;
+            clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 0 100%);
+            position: relative;
+            z-index: 1;
+        }
+
+        .processing-step.active {
+            opacity: 1;
+            transform: translateX(0);
+        }
+        
+        .processing-step::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: repeating-linear-gradient(
+                -45deg,
+                rgba(255, 255, 255, 0.01),
+                rgba(255, 255, 255, 0.01) 4px,
+                transparent 4px,
+                transparent 8px
+            );
+            pointer-events: none;
+        }
+
+        .step-icon {
+            width: 20px; /* Reduced size for compactness */
+            height: 20px; /* Reduced size for compactness */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-light);
+            font-size: 10px; /* Reduced font size */
+            flex-shrink: 0;
+            position: relative;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .step-content {
+            flex: 1;
+        }
+
+        .step-title {
+            color: var(--text-light);
+            font-size: 11px;
+            margin-bottom: 2px;
+            font-weight: 500;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .step-details {
+            color: var(--text-medium);
+            font-size: 10px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .step-status {
+            width: 16px;
+            height: 16px;
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-light);
+            font-size: 8px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+        }
+
+        .step-status.completed {
+            background: var(--success-green);
+            color: black;
+        }
+
+        .step-status.error {
+            background: var(--error-red);
+            color: black;
+        }
+
+        /* Styles for the command input panel */
+        .command-panel {
+            background-color: var(--bg-panel);
+            padding: 12px; /* Reduced padding for compactness */
+            position: relative;
+            border: 1px solid var(--border-color);
+            clip-path: polygon(
+                0 0,
+                calc(100% - 15px) 0,
+                100% 15px,
+                100% 100%,
+                0 100%
+            );
+        }
+        
+        .command-panel::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+            background-size: 20px 20px;
+            pointer-events: none;
+            opacity: 0.5;
+        }
+        
+        .command-panel::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 30px;
+            height: 30px;
+            background-image: linear-gradient(135deg, transparent 15px, var(--border-color) 15px, var(--border-color) 16px, var(--bg-panel) 16px);
+        }
+
+        .command-input-container {
+            display: flex;
+            gap: 8px; /* Reduced gap */
+            margin-bottom: 10px; /* Reduced margin */
+            position: relative;
+        }
+        
+        .command-input-container::before {
+            content: '> CMD:';
+            position: absolute;
+            left: -5px;
+            top: 50%;
+            transform: translate(-100%, -50%);
+            color: var(--text-light);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            opacity: 0.7;
+        }
+
+        .command-input {
+            flex: 1;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--border-color);
+            padding: 8px 12px; /* Reduced padding for compactness */
+            color: var(--text-light);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px; /* Slightly smaller font */
+            outline: none;
+            position: relative;
+        }
+
+        .command-input:focus {
+            border-color: var(--text-light);
+            box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1);
+        }
+
+        .execute-btn {
+            background: var(--text-light);
+            border: none;
+            padding: 8px 16px; /* Reduced padding to match input */
+            color: black;
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 600;
+            font-size: 11px; /* Slightly smaller font */
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            clip-path: polygon(
+                0 0,
+                calc(100% - 10px) 0,
+                100% 10px,
+                100% 100%,
+                10px 100%,
+                0 calc(100% - 10px)
+            );
+            letter-spacing: 1px;
+        }
+
+        .execute-btn:hover {
+            background-color: rgba(255, 255, 255, 0.9);
+        }
+        
+        .execute-btn::after {
+            content: '';
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            width: 6px;
+            height: 6px;
+            background-color: black;
+            clip-path: polygon(0 0, 100% 0, 100% 100%);
+        }
+
+        .quick-commands {
+            display: flex;
+            gap: 6px; /* Reduced gap for compactness */
+            flex-wrap: wrap;
+        }
+
+        .quick-cmd {
+            background: transparent;
+            border: 1px solid var(--text-light);
+            padding: 4px 8px; /* Reduced padding */
+            color: var(--text-light);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px; /* Smaller font */
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+            clip-path: polygon(0 0, calc(100% - 5px) 0, 100% 5px, 100% 100%, 0 100%);
+        }
+        
+        .quick-cmd::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 10px;
+            height: 10px;
+            background-image: linear-gradient(135deg, transparent 5px, var(--border-color) 5px, var(--border-color) 6px, var(--bg-panel) 6px);
+        }
+
+        .quick-cmd:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .quick-cmd:active {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(1px);
+        }
+
+        /* Styles for user info in header */
+        .user-info {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            font-size: 11px;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--text-medium);
+            margin-right: 5px;
+            line-height: 1.2;
+        }
+
+        .user-name {
+            color: var(--text-light);
+            font-weight: 500;
+            font-size: 13px;
+            letter-spacing: 0.5px;
+        }
+
+        .current-datetime {
+            font-size: 9px;
+            opacity: 0.8;
+            margin-top: 2px;
+        }
+    </style>
+</head>
+<body>
+    
+    <div class="container">
+        <!-- Header Section -->
+        <div class="header">
+            <div class="logo">| PROJECT MAD-MAX /</div>
+            <nav class="nav-tabs">
+                <a href="#" class="nav-tab active">Controller</a>
+                <a href="#" class="nav-tab">Overview</a>
+                <a href="#" class="nav-tab">Routes</a>
+                <a href="#" class="nav-tab">All drones</a>
+                <a href="#" class="nav-tab">Map view</a>
+            </nav>
+            <div class="user-section">
+                <div class="search-bar">
+                    <input type="text" placeholder="Search for anything...">
+                </div>
+                <button class="icon-btn">🔍</button>
+                <div class="user-info">
+                    <span class="user-name">AMAR</span>
+                    <span class="current-datetime" id="currentDatetime"></span>
+                </div>
+                <div class="date-range">
+                    <select>
+                        <option>Today</option>
+                        <option>Week</option>
+                        <option selected>Month</option>
+                        <option>Year</option>
+                    </select>
+                    <button class="icon-btn">🗓️</button>
+                </div>
+                <button class="icon-btn">🔔</button>
+                <div class="user-avatar">A</div>
+            </div>
+        </div>
+
+        <!-- Main Dashboard Content Grid -->
+        <div class="dashboard-grid">
+            <!-- Overview Panel -->
+            <div class="panel overview-panel">
+                <div class="panel-inner-grid"></div>
+                <div class="corner-accent top-left"></div>
+                <div class="corner-accent bottom-right"></div>
+                <div class="panel-header">
+                    <div class="panel-title">ALTITUDE DATA</div>
+                    <div class="panel-options">
+                        <select>
+                            <option>Today</option>
+                            <option>Week</option>
+                            <option selected>Month</option>
+                            <option>Year</option>
+                        </select>
+                        <button class="icon-btn">📊</button>
+                    </div>
+                </div>
+                <h3 style="color: var(--text-medium); font-family: 'JetBrains Mono', monospace; font-size: 12px; letter-spacing: 1px;">CURRENT ALTITUDE</h3>
+                <div class="altitude-display">
+                    <p class="main-metric">
+                        <span id="currentAltitude">0.0</span> 
+                        <span class="altitude-label">RELATIVE</span>
+                    </p>
+                    <div class="altitude-bar-container">
+                        <div class="altitude-bar" id="altitudeBar"></div>
+                        <div class="altitude-marker" style="bottom: 0%">0m</div>
+                        <div class="altitude-marker" style="bottom: 50%">5m</div>
+                        <div class="altitude-marker" style="bottom: 100%">10m</div>
+                    </div>
+                    <p class="main-metric" style="margin-top: 5px; font-size: 0.8em;">
+                        <span id="currentAltitudeAsl">15.0</span> 
+                        <span class="altitude-label asl">ASL</span>
+                    </p>
+                </div>
+                <p style="color: var(--text-medium); font-size: 12px; font-family: 'JetBrains Mono', monospace;">REALTIME POSITION DATA</p>
+                <div style="display: flex; justify-content: space-between; margin-top: 10px;">
+                    <span style="color: var(--text-medium); font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 1px;">BATTERY</span>
+                    <span id="batteryPercentage" style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">95.3%</span>
+                </div>
+                <div class="battery-bar">
+                    <div class="battery-fill" id="batteryFill" style="width: 95.3%"></div>
+                </div>
+            </div>
+
+            <!-- Revenue Panel -->
+            <div class="panel revenue-panel">
+                <div class="panel-inner-grid"></div>
+                <div class="corner-accent top-left"></div>
+                <div class="corner-accent bottom-right"></div>
+                <div class="panel-header">
+                    <div class="panel-title">SYSTEM PERFORMANCE</div>
+                    <button class="icon-btn">📈</button>
+                </div>
+                <div class="revenue-bars-container">
+                    <div class="revenue-bar" style="height: 70%;"></div>
+                    <div class="revenue-bar" style="height: 85%;"></div>
+                    <div class="revenue-bar" style="height: 60%;"></div>
+                    <div class="revenue-bar" style="height: 90%;"></div>
+                    <div class="revenue-bar" style="height: 75%;"></div>
+                    <div class="revenue-bar" style="height: 50%;"></div>
+                    <div class="revenue-bar" style="height: 80%;"></div>
+                    <div class="revenue-bar" style="height: 95%;"></div>
+                    <div class="revenue-bar" style="height: 65%;"></div>
+                    <div class="revenue-bar" style="height: 70%;"></div>
+                    <div class="revenue-bar" style="height: 85%;"></div>
+                    <div class="revenue-bar" style="height: 60%;"></div>
+                </div>
+                <div style="display: flex; justify-content: space-around; font-size: 12px; margin-top: 15px; font-family: 'JetBrains Mono', monospace; flex-wrap: wrap;">
+                    <div><span style="color: var(--text-light); display: inline-block; margin-right: 5px;">⬤</span> JETSON CPU <br> <span id="jetsonCpu">32.1%</span></div>
+                    <div><span style="color: var(--success-green); display: inline-block; margin-right: 5px;">⬤</span> JETSON GPU <br> <span id="jetsonGpu">46.8%</span></div>
+                    <div><span style="color: var(--warning-orange); display: inline-block; margin-right: 5px;">⬤</span> RAM USAGE <br> <span id="ramUsage">12.5%</span></div>
+                    <div style="width: 100%; height: 10px;"></div> <!-- Spacer to ensure new row -->
+                    <div><span style="color: var(--accent-secondary); display: inline-block; margin-right: 5px;">⬤</span> DISK USAGE <br> <span id="diskUsage">20%</span></div>
+                    <div><span style="color: var(--text-medium); display: inline-block; margin-right: 5px;">⬤</span> UPTIME <br> <span id="systemUptime">0h 0m</span></div>
+                    <div><span style="color: var(--error-red); display: inline-block; margin-right: 5px;">⬤</span> FAN SPEED <br> <span id="fanSpeed">0 RPM</span></div>
+                </div>
+                <div style="display: flex; justify-content: space-around; margin-top: 15px; border-top: 1px solid rgba(255, 255, 255, 0.1); padding-top: 15px;">
+                    <button class="icon-btn">📈</button>
+                    <button class="icon-btn">📊</button>
+                    <button class="icon-btn">📋</button>
+                </div>
+            </div>
+
+           
+
+            <!-- Weekly Traffic Panel -->
+            <div class="panel weekly-traffic-panel">
+                <div class="panel-inner-grid"></div>
+                <div class="corner-accent top-left"></div>
+                <div class="corner-accent bottom-right"></div>
+                <div class="panel-header">
+                    <div class="panel-title">ALTITUDE HISTORY</div>
+                    <div class="panel-options">
+                        <span style="color: var(--text-light); display: inline-block; margin-right: 5px; font-size: 10px;">⬤</span> <span style="font-size: 10px; font-family: 'JetBrains Mono';">ALTITUDE</span>
+                        <span style="color: var(--success-green); display: inline-block; margin-right: 5px; margin-left: 10px; font-size: 10px;">⬤</span> <span style="font-size: 10px; font-family: 'JetBrains Mono';">TREND</span>
+                    </div>
+                </div>
+                <h3 style="font-family: 'Orbitron', sans-serif; font-size: 18px;"><span id="maxAltitudeDisplay">0.0M</span> <span style="font-size: 12px; color: var(--success-green);">MAX</span></h3>
+                <p style="color: var(--text-medium); font-size: 11px; font-family: 'JetBrains Mono', monospace;">ALTITUDE DATA FOR CURRENT MISSION</p>
+                <div class="traffic-chart-container">
+                    <svg class="traffic-chart-svg" id="altitudeChartSvg" viewBox="0 0 300 150" preserveAspectRatio="none">
+                        <!-- Altitude history polylines will be drawn here by JS -->
+                        <polyline id="mainAltitudePolyline" fill="none" stroke="rgba(255, 255, 255, 0.8)" stroke-width="1" points="" />
+                        <polyline id="aslAltitudePolyline" fill="none" stroke="rgba(179, 255, 179, 0.5)" stroke-width="1" points="" />
+                        
+                        <polyline fill="none" stroke="rgba(255, 255, 255, 0.3)" stroke-width="1" stroke-dasharray="4" points="0,130 300,130" />
+                        
+                        <!-- Dynamic circle and text for latest point -->
+                        <circle id="latestAltitudeCircle" cx="0" cy="0" r="3" fill="#ffffff" stroke="#000000" stroke-width="1" />
+                        <text id="latestAltitudeText1" x="0" y="0" fill="var(--text-light)" font-size="8" text-anchor="start" font-family="JetBrains Mono"></text>
+                        <text id="latestAltitudeText2" x="0" y="0" fill="var(--text-light)" font-size="8" text-anchor="start" font-family="JetBrains Mono"></text>
+                        <text id="latestAltitudeText3" x="0" y="0" fill="var(--text-light)" font-size="8" text-anchor="start" font-family="JetBrains Mono"></text>
+                    </svg>
+                    <div class="traffic-chart-labels">
+                        <span>T-60</span>
+                        <span>T-50</span>
+                        <span>T-40</span>
+                        <span>T-30</span>
+                        <span>T-20</span>
+                        <span>T-10</span>
+                        <span>NOW</span>
+                    </div>
+                    <div class="traffic-chart-y-axis">
+                        <span>130M</span>
+                        <span>110M</span>
+                        <span>90M</span>
+                        <span>70M</span>
+                        <span>50M</span>
+                        <span>30M</span>
+                        <span>10M</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Customer by Time Panel -->
+            <div class="panel customer-time-panel">
+                <div class="panel-inner-grid"></div>
+                <div class="corner-accent top-left"></div>
+                <div class="corner-accent bottom-right"></div>
+                <div class="panel-header">
+                    <div class="panel-title">MISSION HISTORY</div>
+                    <div class="panel-options">
+                        <select>
+                            <option>WEEK</option>
+                            <option selected>MONTH</option>
+                            <option>QUARTER</option>
+                            <option>YEAR</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="customer-time-grid">
+                    <!-- Example cells, repeated for visual density -->
+                    <div class="time-cell" style="opacity: 0.1;"></div>
+                    <div class="time-cell" style="opacity: 0.3;"></div>
+                    <div class="time-cell" style="opacity: 0.5;"></div>
+                    <div class="time-cell" style="opacity: 0.7;"></div>
+                    <div class="time-cell" style="opacity: 0.9;"></div>
+                    <div class="time-cell" style="opacity: 0.2;"></div>
+                    <div class="time-cell" style="opacity: 0.4;"></div>
+                    <div class="time-cell" style="opacity: 0.6;"></div>
+                    <div class="time-cell" style="opacity: 0.8;"></div>
+                    <div class="time-cell" style="opacity: 1.0;"></div>
+                    <div class="time-cell" style="opacity: 0.1;"></div>
+                    <div class="time-cell" style="opacity: 0.3;"></div>
+                    <div class="time-cell" style="opacity: 0.5;"></div>
+                    <div class="time-cell" style="opacity: 0.7;"></div>
+                    <div class="time-cell" style="opacity: 0.9;"></div>
+                    <div class="time-cell" style="opacity: 0.2;"></div>
+                    <div class="time-cell" style="opacity: 0.4;"></div>
+                    <div class="time-cell" style="opacity: 0.6;"></div>
+                    <div class="time-cell" style="opacity: 0.8;"></div>
+                    <div class="time-cell" style="opacity: 1.0;"></div>
+                    <div class="time-cell" style="opacity: 0.1;"></div>
+                    <div class="time-cell" style="opacity: 0.3;"></div>
+                    <div class="time-cell" style="opacity: 0.5;"></div>
+                    <div class="time-cell" style="opacity: 0.7;"></div>
+                    <div class="time-cell" style="opacity: 0.9;"></div>
+                    <div class="time-cell" style="opacity: 0.2;"></div>
+                    <div class="time-cell" style="opacity: 0.4;"></div>
+                    <div class="time-cell" style="opacity: 0.6;"></div>
+                    <div class="time-cell" style="opacity: 0.8;"></div>
+                    <div class="time-cell" style="opacity: 1.0;"></div>
+                    <div class="time-cell" style="opacity: 0.1;"></div>
+                    <div class="time-cell" style="opacity: 0.3;"></div>
+                    <div class="time-cell" style="opacity: 0.5;"></div>
+                    <div class="time-cell" style="opacity: 0.7;"></div>
+                    <div class="time-cell" style="opacity: 0.9;"></div>
+                    <div class="time-cell" style="opacity: 0.2;"></div>
+                    <div class="time-cell" style="opacity: 0.4;"></div>
+                    <div class="time-cell" style="opacity: 0.6;"></div>
+                    <div class="time-cell" style="opacity: 0.8;"></div>
+                    <div class="time-cell" style="opacity: 1.0;"></div>
+                    <div class="time-labels">
+                        <span>10am</span>
+                        <span>11am</span>
+                        <span>12pm</span>
+                        <span>1pm</span>
+                        <span>2pm</span>
+                        <span>3pm</span>
+                        <span>4pm</span>
+                        <span>5pm</span>
+                    </div>
+                    <div class="day-labels">
+                        <span>Sun</span>
+                        <span>Mon</span>
+                        <span>Tue</span>
+                        <span>Wed</span>
+                        <span>Thu</span>
+                        <span>Fri</span>
+                        <span>Sat</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Drone Telemetry Panel -->
+            <div class="panel drone-telemetry-panel">
+                <div class="panel-inner-grid"></div>
+                <div class="corner-accent top-left"></div>
+                <div class="corner-accent bottom-right"></div>
+                <div class="panel-header">
+                    <div class="panel-title">DRONE TELEMETRY</div>
+                    <div class="panel-options">
+                        <button class="icon-btn">📡</button>
+                        <button class="icon-btn">⚙️</button>
+                    </div>
+                </div>
+                <div class="telemetry-grid">
+                    <div class="telemetry-item">
+                        <span class="telemetry-label">ARMED</span>
+                        <span class="telemetry-value" id="armedStatus">NO</span>
+                    </div>
+                    <div class="telemetry-item">
+                        <span class="telemetry-label">MODE</span>
+                        <span class="telemetry-value" id="flightMode">HOLD</span>
+                    </div>
+                    <div class="telemetry-item">
+                        <span class="telemetry-label">ALT</span>
+                        <span class="telemetry-value" id="altitude">0.0m</span>
+                    </div>
+                    <div class="telemetry-item">
+                        <span class="telemetry-label">ASL</span>
+                        <span class="telemetry-value" id="altitudeAsl">15.0m</span>
+                    </div>
+                    <div class="telemetry-item">
+                        <span class="telemetry-label">VEL</span>
+                        <span class="telemetry-value" id="velocity">0.0 m/s</span>
+                    </div>
+                    <div class="telemetry-item">
+                        <span class="telemetry-label">V-SPD</span>
+                        <div class="telemetry-value-with-indicator">
+                            <span class="telemetry-value" id="verticalSpeed">0.0 m/s</span>
+                            <div class="vertical-speed-indicator">
+                                <div class="speed-arrow up"></div>
+                                <div class="speed-arrow down"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="telemetry-item">
+                        <span class="telemetry-label">HDG</span>
+                        <span class="telemetry-value" id="heading">0.0°</span>
+                    </div>
+                    <div class="telemetry-item">
+                        <span class="telemetry-label">VOLT</span>
+                        <span class="telemetry-value" id="voltage">0.0V</span>
+                    </div>
+                    <div class="telemetry-item">
+                        <span class="telemetry-label">AMP</span>
+                        <span class="telemetry-value" id="current">0.0A</span>
+                    </div>
+                    <div class="telemetry-item">
+                        <span class="telemetry-label">SAT</span>
+                        <span class="telemetry-value" id="gpsSatellites">0</span>
+                    </div>
+                    <div class="telemetry-item">
+                        <span class="telemetry-label">SIG</span>
+                        <span class="telemetry-value" id="signalStrength">0%</span>
+                    </div>
+                    <div class="telemetry-item">
+                        <span class="telemetry-label">GPS FIX</span>
+                        <span class="telemetry-value" id="gpsFixType">NO FIX</span>
+                    </div>
+                    <div class="telemetry-item">
+                        <span class="telemetry-label">FCU STATUS</span>
+                        <span class="telemetry-value" id="fcuStatus">UNKNOWN</span>
+                    </div>
+                    <div class="telemetry-item">
+                        <span class="telemetry-label">LORA RSSI</span>
+                        <span class="telemetry-value" id="loraRssi">0 dBm</span>
+                    </div>
+                    <div class="telemetry-item">
+                        <span class="telemetry-label">LORA SNR</span>
+                        <span class="telemetry-value" id="loraSnr">0 dB</span>
+                    </div>
+                    <div class="telemetry-item">
+                        <span class="telemetry-label">PKT LOSS</span>
+                        <span class="telemetry-value" id="packetLoss">0%</span>
+                    </div>
+                    <div class="telemetry-item">
+                        <span class="telemetry-label">TEMP</span>
+                        <span class="telemetry-value" id="cpuTemp">0°C</span>
+                    </div>
+                    <div class="telemetry-item">
+                        <span class="telemetry-label">MEM</span>
+                        <span class="telemetry-value" id="memoryUsage">0%</span>
+                    </div>
+                    <div class="telemetry-item">
+                        <span class="telemetry-label">BARO</span>
+                        <span class="telemetry-value" id="baroPressure">1013.25 hPa</span>
+                    </div>
+                    <div class="telemetry-item">
+                        <span class="telemetry-label">LAT</span>
+                        <span class="telemetry-value" id="latitude">0.000000</span>
+                    </div>
+                    <div class="telemetry-item">
+                        <span class="telemetry-label">LON</span>
+                        <span class="telemetry-value" id="longitude">0.000000</span>
+                    </div>
+                </div>
+                <div class="drone-icon-container">
+                    <div class="hexacopter">
+                        <div class="propeller p1"></div>
+                        <div class="propeller p2"></div>
+                        <div class="propeller p3"></div>
+                        <div class="propeller p4"></div>
+                        <div class="propeller p5"></div>
+                        <div class="propeller p6"></div>
+                        <div class="body"></div>
+                    </div>
+                </div>
+            </div>
+            <!-- System Log Panel -->
+            <div class="log-panel">
+                <div class="panel-inner-grid"></div>
+                <div class="corner-accent top-left"></div>
+                <div class="corner-accent bottom-right"></div>
+                <div class="panel-header">
+                    <div class="panel-title">SYSTEM LOG</div>
+                    <div class="panel-options">
+                        <span id="log-timestamp">16 JUN 2025 | 13:42:07 UTC</span>
+                        <button class="icon-btn" title="Clear logs">🗑️</button>
+                        <button class="icon-btn" title="Export logs">📤</button>
+                    </div>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 10px; padding: 5px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.1); font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text-medium);">
+                    <span>OPERATOR: AMAR</span>
+                    <span>SESSION: #${Math.floor(Math.random()*1000).toString().padStart(3, '0')}</span>
+                </div>
+                <div class="log-status-bar">
+                    <div class="log-filter active" data-filter="all">ALL</div>
+                    <div class="log-filter" data-filter="INFO">INFO</div>
+                    <div class="log-filter" data-filter="WARN">WARN</div>
+                    <div class="log-filter" data-filter="ERROR">ERROR</div>
+                    <div class="log-filter" data-filter="DEBUG">DEBUG</div>
+                    <div class="log-counter"><span id="log-count">0</span> ENTRIES</div>
+                </div>
+                <div class="log-container" id="logContainer">
+                    <!-- Logs will be populated by JavaScript -->
+                </div>
+                <div class="log-details">
+                    <div class="system-status">
+                        <span class="status-indicator online"></span> SYSTEM ONLINE
+                    </div>
+                    <div class="mission-time">MISSION TIME: <span id="mission-time">00:14:22</span></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Command Panel -->
+        <div class="command-panel">
+            <div class="panel-inner-grid"></div>
+            <div class="panel-header">
+                <div class="panel-title">PROJECT MADMAX COMMAND INTERFACE</div>
+            </div>
+            <div class="command-input-container">
+                <input type="text" id="commandInput" placeholder="ENTER COMMAND..." class="command-input">
+                <button id="executeBtn" class="execute-btn">EXECUTE</button>
+            </div>
+            <div class="quick-commands">
+                <button class="quick-cmd" data-cmd="arm">ARM</button>
+                <button class="quick-cmd" data-cmd="disarm">DISARM</button>
+                <button class="quick-cmd" data-cmd="takeoff">TAKEOFF</button>
+                <button class="quick-cmd" data-cmd="land">LAND</button>
+                <button class="quick-cmd" data-cmd="hover">HOVER</button>
+                <button class="quick-cmd" data-cmd="status">STATUS</button>
+                <button class="quick-cmd voice-cmd" data-cmd="hey ! max let go for a ride" style="background: linear-gradient(45deg, var(--accent-blue), var(--accent-cyan)); color: white; font-weight: bold;">🎤 VOICE RIDE</button>
+            </div>
+        </div>
+
+        <!-- Command Processing Popup -->
+        <div id="commandProcessingPopup" class="command-processing-popup">
+            <div class="panel-title">COMMAND PROCESSING</div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 10px; padding-bottom: 5px; border-bottom: 1px solid rgba(255, 255, 255, 0.1); font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text-medium);">
+                <span>OPERATOR: AMAR</span>
+                <span>16 JUN 2025</span>
+            </div>
+            <div id="processingSteps" class="processing-steps"></div>
+        </div>
+    </div>
+
+    <script>
+        let displayedLogIds = new Set();
+        const MAX_LOG_ENTRIES = 150; // Increased for more log history
+        let simulation_step = 0; // Track mission time
+        
+        // Chart variables
+        let altitudeHistoryPoints = []; // Stores { relative_y, asl_y } for chart plotting
+        const MAX_CHART_POINTS = 60; // Max number of data points for the altitude history chart (60 seconds)
+        const SVG_WIDTH = 300; // From viewBox
+        const SVG_HEIGHT = 100; // From viewBox
+        const CHART_SVG_Y_BOTTOM = SVG_HEIGHT - 10; // Bottom Y-coordinate for chart data (140px)
+        const CHART_SVG_Y_TOP = 10; // Top Y-coordinate for chart data (10px)
+        const CHART_SVG_Y_RANGE = CHART_SVG_Y_BOTTOM - CHART_SVG_Y_TOP; // Total range for Y-axis in pixels (130px)
+
+        const CHART_MAX_RELATIVE_ALTITUDE = 30; // Max relative altitude in meters for scaling the chart's Y-axis
+        const CHART_MIN_RELATIVE_ALTITUDE = 0; // Min relative altitude in meters for scaling
+
+        let isCurrentlyFlying = false; // Flag to detect flight state change for new line
+        let maxRelativeAltitudeReached = 0; // Track max relative altitude for current flight
+        let initialAslAtTakeoff = 0; // To store ASL at the start of a flight for the ASL trend line
+
+        // Predefined logs for continuous display - these are typically from the backend
+        // Removed predefined logs from here, as they should ideally stream from the backend.
+        // Keeping only a minimal initial message.
+        // const predefinedLogs = [...]; 
+        
+        // Radar animation script (if you had one, it would go here)
+        function animateRadarBlips() {
+            const blips = document.querySelectorAll('.radar-blip');
+            
+            // Occasionally move blips to simulate tracking objects
+            setInterval(() => {
+                blips.forEach(blip => {
+                    // Only move blips occasionally and randomly
+                    if (Math.random() > 0.7) {
+                        const top = Math.random() * 80 + 10; // Keep within 10-90% of radar
+                        const left = Math.random() * 80 + 10;
+                        
+                        blip.style.top = `${top}%`;
+                        blip.style.left = `${left}%`;
+                        
+                        // Reset the animation
+                        blip.style.animation = 'none';
+                        blip.offsetHeight; // Trigger reflow
+                        blip.style.animation = `blip-fade ${5 + Math.random() * 5}s infinite`;
+                        blip.style.animationDelay = `${Math.random() * 2}s`;
+                    }
+                });
+            }, 5000); // Check every 5 seconds
+        }
+        
+        // Initialize radar animation when document loads
+        document.addEventListener('DOMContentLoaded', function() {
+            // Only call animateRadarBlips if you have actual radar blips in your HTML, otherwise it will do nothing
+            // animateRadarBlips(); 
+            updateCurrentDatetime(); // Initial call for navbar datetime
+            setInterval(updateCurrentDatetime, 1000); // Update navbar datetime every second
+        });
+
+        let statusUpdateInterval = null;
+        let logUpdateInterval = null;
+
+        function initConnection() {
+            // This is the only local log entry now, rest should come from backend
+            addLocalLogEntry('SYSTEM', 'PROJECT MADMAX - INITIALIZING...'); 
+            
+            // Initial status fetch
+            fetch('/api/status')
+                .then(response => response.json())
+                .then(data => {
+                    updateStatusDisplay(data);
+                    updateButtonStates(data);
+                })
+                .catch(error => {
+                    console.error('Error fetching status:', error);
+                    addLocalLogEntry('ERROR', 'Connection failed: Check server availability');
+                });
+                
+            // Initial logs fetch
+            fetch('/api/logs')
+                .then(response => response.json())
+                .then(data => {
+                    updateLogDisplay(data);
+                })
+                .catch(error => {
+                    console.error('Error fetching logs:', error);
+                });
+                
+            // Start periodic updates
+            statusUpdateInterval = setInterval(() => {
+                fetch('/api/status')
+                    .then(response => response.json())
+                    .then(data => {
+                        updateStatusDisplay(data);
+                        updateButtonStates(data);
+                        simulation_step++; // Increment mission time
+                    })
+                    .catch(error => {
+                        console.error('Error fetching status updates:', error);
+                    });
+            }, 1000);
+            
+            logUpdateInterval = setInterval(() => {
+                fetch('/api/logs')
+                    .then(response => response.json())
+                    .then(data => {
+                        updateLogDisplay(data);
+                    })
+                    .catch(error => {
+                        console.error('Error fetching log updates:', error);
+                    });
+            }, 2000);
+        }
+
+        // Update dashboard with received telemetry
+        function updateStatusDisplay(data) {
+            // Overview Panel
+            document.getElementById('currentAltitude').textContent = data.altitude.toFixed(1);
+            document.getElementById('currentAltitudeAsl').textContent = data.altitude_asl.toFixed(1);
+            document.getElementById('batteryPercentage').textContent = data.battery.toFixed(1) + '%';
+            
+            // Update altitude bar with smooth animation and effects
+            const altitudeBar = document.getElementById('altitudeBar');
+            const altitudePercentage = (data.altitude / 10) * 100;
+            
+            // Add visual enhancements based on ascent speed
+            if (data.vertical_speed > 1.5) {
+                // Fast ascent effect
+                altitudeBar.classList.add('fast-ascent');
+                altitudeBar.classList.remove('normal-ascent', 'slow-ascent');
+            } else if (data.vertical_speed > 0.5) {
+                // Normal ascent effect
+                altitudeBar.classList.add('normal-ascent');
+                altitudeBar.classList.remove('fast-ascent', 'slow-ascent');
+            } else if (data.vertical_speed > 0.1) {
+                // Slow ascent effect
+                altitudeBar.classList.add('slow-ascent');
+                altitudeBar.classList.remove('fast-ascent', 'normal-ascent');
+            } else {
+                // No ascent
+                altitudeBar.classList.remove('fast-ascent', 'normal-ascent', 'slow-ascent');
+            }
+            
+            altitudeBar.style.height = Math.min(altitudePercentage, 100) + '%';
+            
+            // Animate drone based on flight status
+            updateDroneAnimation(data);
+            
+            const batteryFill = document.getElementById('batteryFill');
+            batteryFill.style.width = data.battery + '%';
+
+            // Update battery color based on level in our monochrome theme
+            if (data.battery < 20) {
+                batteryFill.style.background = 'rgba(255, 255, 255, 0.5)';
+                batteryFill.style.boxShadow = '0 0 5px rgba(255, 255, 255, 0.5)';
+            } else if (data.battery < 50) {
+                batteryFill.style.background = 'rgba(255, 255, 255, 0.7)';
+                batteryFill.style.boxShadow = '0 0 5px rgba(255, 255, 255, 0.3)';
+            } else {
+                batteryFill.style.background = 'var(--text-light)';
+                batteryFill.style.boxShadow = '0 0 5px rgba(255, 255, 255, 0.2)';
+            }
+            
+            // Update system performance bars based on mode
+            const perfBars = document.querySelectorAll('.revenue-bar');
+            if (data.mode === "GUIDED" && data.altitude < 10.0) {
+                // During takeoff - increase bar heights randomly for more dramatic visualization
+                perfBars.forEach(bar => {
+                    // Higher values for CPU/memory/system performance during takeoff
+                    const height = 70 + Math.random() * 30; // 70-100% range
+                    bar.style.height = height + '%';
+                    
+                    // Add pulsing effect during rapid ascent
+                    if (data.vertical_speed > 1.5) {
+                        bar.style.animation = 'pulse-bar 0.5s infinite alternate';
+                    } else {
+                        bar.style.animation = '';
+                    }
+                });
+                
+                // Update system stats text for CPU, Memory, Network
+                // Updated for Jetson Orin Nano and new metrics
+                updateTelemetryValue('jetsonCpu', data.cpu_temp.toFixed(1) + '%');
+                updateTelemetryValue('jetsonGpu', (data.cpu_temp * 0.8 + Math.random() * 5).toFixed(1) + '%'); // Simulate GPU usage
+                updateTelemetryValue('ramUsage', data.memory_usage.toFixed(1) + '%');
+                updateTelemetryValue('diskUsage', (20 + Math.random() * 10).toFixed(0) + '%'); // Simulate disk usage
+                const uptimeSeconds = simulation_step;
+                const hours = Math.floor(uptimeSeconds / 3600);
+                const minutes = Math.floor((uptimeSeconds % 3600) / 60);
+                updateTelemetryValue('systemUptime', `${hours}h ${minutes}m`);
+                updateTelemetryValue('fanSpeed', data.armed && data.altitude > 0.5 ? (2000 + Math.random() * 1000).toFixed(0) + ' RPM' : '0 RPM'); // Simulate fan speed when flying
+            } else {
+                // Reset bar animations when not in takeoff
+                perfBars.forEach(bar => {
+                    bar.style.animation = '';
+                });
+                // Also reset simulated values to a more idle state
+                updateTelemetryValue('jetsonCpu', (10 + Math.random() * 5).toFixed(1) + '%');
+                updateTelemetryValue('jetsonGpu', (5 + Math.random() * 3).toFixed(1) + '%');
+                updateTelemetryValue('ramUsage', (25 + Math.random() * 10).toFixed(1) + '%');
+                updateTelemetryValue('diskUsage', (20 + Math.random() * 5).toFixed(0) + '%');
+                const uptimeSeconds = simulation_step;
+                const hours = Math.floor(uptimeSeconds / 3600);
+                const minutes = Math.floor((uptimeSeconds % 3600) / 60);
+                updateTelemetryValue('systemUptime', `${hours}h ${minutes}m`);
+                updateTelemetryValue('fanSpeed', '0 RPM');
+            }
+
+            // Drone Telemetry Panel
+            document.getElementById('armedStatus').textContent = data.armed ? 'ARMED' : 'DISARMED';
+            document.getElementById('flightMode').textContent = data.mode;
+            
+            // Update altitude with visual indicator for changes
+            updateTelemetryValue('altitude', data.altitude.toFixed(1) + 'm');
+            updateTelemetryValue('altitudeAsl', data.altitude_asl.toFixed(1) + 'm');
+            updateTelemetryValue('velocity', data.velocity.toFixed(1) + ' m/s');
+            updateTelemetryValue('verticalSpeed', data.vertical_speed.toFixed(1) + ' m/s');
+            
+            // Update vertical speed indicator
+            const upArrow = document.querySelector('.speed-arrow.up');
+            const downArrow = document.querySelector('.speed-arrow.down');
+            
+            if (data.vertical_speed > 0.1) {
+                upArrow.classList.add('active', 'positive');
+                downArrow.classList.remove('active', 'negative');
+            } else if (data.vertical_speed < -0.1) {
+                downArrow.classList.add('active', 'negative');
+                upArrow.classList.remove('active', 'positive');
+            } else {
+                upArrow.classList.remove('active', 'positive');
+                downArrow.classList.remove('active', 'negative');
+            }
+            document.getElementById('heading').textContent = data.heading.toFixed(1) + '°';
+            document.getElementById('voltage').textContent = data.voltage.toFixed(1) + 'V';
+            document.getElementById('current').textContent = data.current.toFixed(1) + 'A';
+            document.getElementById('baroPressure').textContent = data.ground_pressure.toFixed(2) + ' hPa';
+            document.getElementById('gpsSatellites').textContent = data.gps_satellites;
+            updateTelemetryValue('signalStrength', data.signal_strength + '%');
+            updateTelemetryValue('cpuTemp', data.cpu_temp + '°C');
+            updateTelemetryValue('memoryUsage', data.memory_usage + '%');
+            updateTelemetryValue('latitude', data.position.lat.toFixed(6));
+            updateTelemetryValue('longitude', data.position.lon.toFixed(6));
+
+            // New Pixhawk/LoRa related telemetry updates
+            updateTelemetryValue('gpsFixType', data.gps_satellites > 5 ? '3D FIX' : 'NO FIX');
+            updateTelemetryValue('fcuStatus', data.armed ? 'READY' : 'IDLE');
+            updateTelemetryValue('loraRssi', (-100 + (Math.random() * 40)).toFixed(0) + ' dBm'); // Simulate RSSI
+            updateTelemetryValue('loraSnr', (5 + (Math.random() * 15)).toFixed(1) + ' dB'); // Simulate SNR
+            updateTelemetryValue('packetLoss', (Math.random() * 1).toFixed(1) + '%'); // Simulate minor packet loss
+
+            // Altitude History Chart (Weekly Traffic Panel)
+            const altitudeChartSvg = document.getElementById('altitudeChartSvg');
+            const mainAltitudePolyline = document.getElementById('mainAltitudePolyline'); // This will be relative altitude
+            const aslAltitudePolyline = document.getElementById('aslAltitudePolyline'); // This will be ASL altitude
+            const latestAltitudeCircle = document.getElementById('latestAltitudeCircle');
+            const latestAltitudeText1 = document.getElementById('latestAltitudeText1');
+            const latestAltitudeText2 = document.getElementById('latestAltitudeText2');
+            const latestAltitudeText3 = document.getElementById('latestAltitudeText3');
+            const maxAltitudeDisplay = document.getElementById('maxAltitudeDisplay');
+
+            // Detect takeoff to start a new line
+            const wasFlying = isCurrentlyFlying;
+            isCurrentlyFlying = data.armed && data.altitude > 0.5; // Drone is considered flying if armed and above 0.5m
+
+            if (isCurrentlyFlying && !wasFlying) {
+                // New takeoff detected, clear history to draw a new line
+                altitudeHistoryPoints = [];
+                maxRelativeAltitudeReached = 0; // Reset max altitude for new flight
+                initialAslAtTakeoff = data.altitude_asl; // Capture ASL at takeoff
+                addLocalLogEntry('SYSTEM', `New flight started. Altitude history reset.`);
+            } else if (!isCurrentlyFlying && wasFlying) {
+                // Drone just landed or disarmed after a flight
+                addLocalLogEntry('SYSTEM', `Flight ended. Max relative altitude: ${maxRelativeAltitudeReached.toFixed(1)}m`);
+            }
+
+            // Add current altitude data to history
+            const currentAltRelative = data.altitude;
+            const currentAltAsl = data.altitude_asl;
+
+            // Update max relative altitude display for the current mission
+            if (currentAltRelative > maxRelativeAltitudeReached) {
+                maxRelativeAltitudeReached = currentAltRelative;
+            }
+            maxAltitudeDisplay.textContent = maxRelativeAltitudeReached.toFixed(1) + 'M';
+
+
+            // Convert Relative altitude to SVG Y-coordinate (White line)
+            let yRelativeScaled = CHART_SVG_Y_BOTTOM - ((currentAltRelative - CHART_MIN_RELATIVE_ALTITUDE) / (CHART_MAX_RELATIVE_ALTITUDE - CHART_MIN_RELATIVE_ALTITUDE)) * CHART_SVG_Y_RANGE;
+            // Clamp to chart boundaries
+            yRelativeScaled = Math.max(CHART_SVG_Y_TOP, Math.min(CHART_SVG_Y_BOTTOM, yRelativeScaled));
+            
+            // Convert ASL altitude to SVG Y-coordinate (Green line) - scaled based on deviation from initial ASL
+            let yAslScaled = CHART_SVG_Y_BOTTOM - ((currentAltAsl - initialAslAtTakeoff) / (CHART_MAX_RELATIVE_ALTITUDE - CHART_MIN_RELATIVE_ALTITUDE)) * CHART_SVG_Y_RANGE;
+            yAslScaled = Math.max(CHART_SVG_Y_TOP, Math.min(CHART_SVG_Y_BOTTOM, yAslScaled));
+
+
+            altitudeHistoryPoints.push({ y_relative: yRelativeScaled, y_asl: yAslScaled });
+
+            // Keep only the last MAX_CHART_POINTS entries
+            if (altitudeHistoryPoints.length > MAX_CHART_POINTS) {
+                altitudeHistoryPoints.shift();
+            }
+
+            // Generate polyline points string for relative altitude (white line)
+            let relativePointsString = altitudeHistoryPoints.map((point, index) => {
+                const xPos = (index / (MAX_CHART_POINTS - 1)) * SVG_WIDTH;
+                return `${xPos},${point.y_relative}`;
+            }).join(' ');
+
+            // Generate polyline points string for ASL altitude (green line)
+            let aslPointsString = altitudeHistoryPoints.map((point, index) => {
+                const xPos = (index / (MAX_CHART_POINTS - 1)) * SVG_WIDTH;
+                return `${xPos},${point.y_asl}`;
+            }).join(' ');
+
+            mainAltitudePolyline.setAttribute('points', relativePointsString);
+            aslAltitudePolyline.setAttribute('points', aslPointsString);
+
+            // Update latest point circle and text based on RELATIVE ALTITUDE (main white line)
+            if (altitudeHistoryPoints.length > 0) {
+                const lastPoint = altitudeHistoryPoints[altitudeHistoryPoints.length - 1];
+                const lastX = ((altitudeHistoryPoints.length - 1) / (MAX_CHART_POINTS - 1)) * SVG_WIDTH;
+
+                latestAltitudeCircle.setAttribute('cx', lastX);
+                latestAltitudeCircle.setAttribute('cy', lastPoint.y_relative);
+
+                // Update text position to avoid overlap with circle or other elements
+                latestAltitudeText1.setAttribute('x', lastX + 5);
+                latestAltitudeText1.setAttribute('y', lastPoint.y_relative - 10);
+                latestAltitudeText1.textContent = new Date().toLocaleDateString('en-US', { day: '2-digit', month: 'short' });
+
+                latestAltitudeText2.setAttribute('x', lastX + 5);
+                latestAltitudeText2.setAttribute('y', lastPoint.y_relative);
+                latestAltitudeText2.textContent = `ALT: ${currentAltRelative.toFixed(1)}M`; // Relative
+
+                latestAltitudeText3.setAttribute('x', lastX + 5);
+                latestAltitudeText3.setAttribute('y', lastPoint.y_relative + 10);
+                latestAltitudeText3.textContent = `ASL: ${currentAltAsl.toFixed(1)}M`; // ASL
+            } else {
+                // Hide circle and text if no data
+                latestAltitudeCircle.setAttribute('cx', -10); // Move off screen
+                latestAltitudeText1.textContent = '';
+                latestAltitudeText2.textContent = '';
+                latestAltitudeText3.textContent = '';
+            }
+        }
+
+        function updateLogDisplay(newLogs) {
+            const logContainer = document.getElementById('logContainer');
+            const logsToAdd = [];
+            const logCountElement = document.getElementById('log-count');
+            
+            newLogs.forEach(log => {
+                const logId = `${log.timestamp}-${log.level}-${log.message}`;
+                if (!displayedLogIds.has(logId)) {
+                    logsToAdd.push(log);
+                    displayedLogIds.add(logId);
+                }
+            });
+            
+            // Add new logs with staggered animation for terminal-like effect
+            if (logsToAdd.length > 0) {
+                addLogsWithAnimation(logsToAdd, 0);
+            }
+            
+            // Update log counter
+            logCountElement.textContent = logContainer.children.length + logsToAdd.length;
+            
+            // Update timestamp
+            document.getElementById('log-timestamp').textContent = 
+                new Date().toLocaleDateString('en-US', { 
+                    day: '2-digit', 
+                    month: 'short', 
+                    year: 'numeric' 
+                }).toUpperCase() + ' | ' + 
+                new Date().toLocaleTimeString('en-US', { 
+                    hour12: false,
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit'
+                }) + ' UTC';
+                
+            // Update mission time
+            const missionTimeElement = document.getElementById('mission-time');
+            if (missionTimeElement) {
+                const missionMinutes = Math.floor(simulation_step / 60) % 60;
+                const missionHours = Math.floor(simulation_step / 3600);
+                const missionSeconds = simulation_step % 60;
+                missionTimeElement.textContent = 
+                    `${missionHours.toString().padStart(2, '0')}:${missionMinutes.toString().padStart(2, '0')}:${missionSeconds.toString().padStart(2, '0')}`;
+            }
+        }
+        
+        function addLogsWithAnimation(logs, index) {
+            if (index >= logs.length) return;
+            
+            const logContainer = document.getElementById('logContainer');
+            const log = logs[index];
+            
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry log-level-${log.level}`;
+            logEntry.dataset.logId = `${log.timestamp}-${log.level}-${log.message}`;
+            logEntry.dataset.level = log.level;
+            
+            // Create a typing effect for terminal-like appearance
+            logEntry.innerHTML = `<strong>${log.timestamp}</strong> [${log.level}]`;
+            logContainer.appendChild(logEntry);
+            
+            // Simulate typing effect for the message
+            let messageChars = log.message.split('');
+            let charIndex = 0;
+            
+            function typeNextChar() {
+                if (charIndex < messageChars.length) {
+                    logEntry.innerHTML = `<strong>${log.timestamp}</strong> [${log.level}] ${log.message.substring(0, charIndex + 1)}`;
+                    charIndex++;
+                    setTimeout(typeNextChar, Math.random() * 15 + 5); // Random typing speed
+                } else {
+                    // Move to the next log entry after typing is complete
+                    setTimeout(() => {
+                        addLogsWithAnimation(logs, index + 1);
+                    }, 50);
+                }
+            }
+            
+            // Start typing effect
+            setTimeout(typeNextChar, 30);
+            
+            // Clean up old logs
+            while (logContainer.children.length > MAX_LOG_ENTRIES) {
+                const oldestLogElement = logContainer.children[0];
+                const oldestLogId = oldestLogElement.dataset.logId;
+                if (oldestLogId) {
+                    displayedLogIds.delete(oldestLogId);
+                }
+                logContainer.removeChild(oldestLogElement);
+            }
+            
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+
+        function addLocalLogEntry(level, message) {
+            const logContainer = document.getElementById('logContainer');
+            const timestamp = new Date().toTimeString().split(' ')[0];
+            const logId = `${timestamp}-${level}-${message}`;
+
+            if (!displayedLogIds.has(logId)) {
+                const logEntry = document.createElement('div');
+                logEntry.className = `log-entry log-level-${level}`;
+                logEntry.dataset.logId = logId;
+                logEntry.innerHTML = `
+                    <strong>${timestamp}</strong> [${level}] ${message}
+                `;
+
+                logContainer.appendChild(logEntry);
+                displayedLogIds.add(logId);
+
+                while (logContainer.children.length > MAX_LOG_ENTRIES) {
+                    const oldestLogElement = logContainer.children[0];
+                    const oldestLogId = oldestLogElement.dataset.logId;
+                    if (oldestLogId) {
+                        displayedLogIds.delete(oldestLogId);
+                    }
+                    logContainer.removeChild(oldestLogElement);
+                }
+
+                logContainer.scrollTop = logContainer.scrollHeight;
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const executeBtn = document.getElementById('executeBtn');
+            const commandInput = document.getElementById('commandInput');
+            const quickCmds = document.querySelectorAll('.quick-cmd');
+            const logFilters = document.querySelectorAll('.log-filter');
+
+            executeBtn.addEventListener('click', function() {
+                const command = commandInput.value.trim();
+                if (command) {
+                    sendCommand(command);
+                    commandInput.value = '';
+                }
+            });
+
+            commandInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    executeBtn.click();
+                }
+            });
+
+            quickCmds.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const cmd = this.dataset.cmd;
+                    sendCommand(cmd);
+                });
+            });
+            
+            // Handle log filtering
+            logFilters.forEach(filter => {
+                filter.addEventListener('click', function() {
+                    // Remove active class from all filters
+                    logFilters.forEach(f => f.classList.remove('active'));
+                    // Add active class to clicked filter
+                    this.classList.add('active');
+                    
+                    const filterType = this.dataset.filter;
+                    const logEntries = document.querySelectorAll('.log-entry');
+                    
+                    if (filterType === 'all') {
+                        // Show all logs
+                        logEntries.forEach(entry => {
+                            entry.style.display = 'block';
+                        });
+                    } else {
+                        // Filter logs
+                        logEntries.forEach(entry => {
+                            if (entry.dataset.level === filterType) {
+                                entry.style.display = 'block';
+                            } else {
+                                entry.style.display = 'none';
+                            }
+                        });
+                    }
+                });
+            });
+
+            initConnection();
+        });
+
+        function showCommandProcessing(command) {
+            const processingPopup = document.getElementById('commandProcessingPopup');
+            processingPopup.style.display = 'flex';
+            const processingStepsContainer = document.getElementById('processingSteps');
+            processingStepsContainer.innerHTML = '';
+            
+            // Custom steps based on command type for more realistic feedback
+            let steps = [];
+            const cmdId = Math.floor(Math.random()*16777215).toString(16).toUpperCase();
+            
+            // Special voice command detection
+            if (command.toLowerCase().includes('hey') && command.toLowerCase().includes('max') && command.toLowerCase().includes('ride')) {
+                steps = [
+                    { icon: '🎤', title: 'VOICE COMMAND RECOGNIZED', details: `Voice Input: "${command}"` },
+                    { icon: '🧠', title: 'AI VOICE PROCESSING', details: 'Natural Language Understanding Active' },
+                    { icon: '🔐', title: 'AUTO-ARM SEQUENCE', details: 'Automatic arming initiated by voice' },
+                    { icon: '⚡', title: 'SYSTEM ACTIVATION', details: 'Motors armed - safety protocols active' },
+                    { icon: '🚀', title: 'AUTO-TAKEOFF SEQUENCE', details: 'Voice-commanded flight initiation' },
+                    { icon: '✈️', title: 'FLIGHT MODE ACTIVE', details: 'PROJECT MADMAX airborne - Enjoy your ride!' }
+                ];
+            } else if (command === 'takeoff') {
+                steps = [
+                    { icon: '01', title: 'TAKEOFF SEQUENCE INITIATED', details: `Command: "${command.toUpperCase()}"` },
+                    { icon: '02', title: 'PREFLIGHT SYSTEM CHECK', details: 'All systems nominal' },
+                    { icon: '03', title: 'CALCULATING TRAJECTORY', details: 'Target altitude: 10.0m AGL' },
+                    { icon: '04', title: 'MAVLINK PROTOCOL', details: `Cmd ID: 0x${cmdId} | MAV_CMD_NAV_TAKEOFF` },
+                    { icon: '05', title: 'ENGAGING MOTORS', details: 'Throttle control active' }
+                ];
+            } else if (command === 'land') {
+                steps = [
+                    { icon: '01', title: 'LANDING SEQUENCE INITIATED', details: `Command: "${command.toUpperCase()}"` },
+                    { icon: '02', title: 'PREPARING DESCENT PATH', details: 'Calculating optimal trajectory' },
+                    { icon: '03', title: 'AIRSPACE VERIFICATION', details: 'Landing zone clear' },
+                    { icon: '04', title: 'MAVLINK PROTOCOL', details: `Cmd ID: 0x${cmdId} | MAV_CMD_NAV_LAND` },
+                    { icon: '05', title: 'DESCENT CONTROL', details: 'Reducing altitude at controlled rate' }
+                ];
+            } else if (command === 'arm') {
+                steps = [
+                    { icon: '01', title: 'ARM SEQUENCE INITIATED', details: `Command: "${command.toUpperCase()}"` },
+                    { icon: '02', title: 'SYSTEM DIAGNOSTICS', details: 'All systems nominal' },
+                    { icon: '03', title: 'SAFETY PROTOCOL CHECK', details: 'All checks passed' },
+                    { icon: '04', title: 'MAVLINK PROTOCOL', details: `Cmd ID: 0x${cmdId} | MAV_CMD_COMPONENT_ARM` },
+                    { icon: '05', title: 'ARMING MOTORS', details: 'Motors armed in standby state' }
+                ];
+            } else {
+                steps = [
+                    { icon: '01', title: 'INPUT PROCESSING', details: `Command: "${command.toUpperCase()}"` },
+                    { icon: '02', title: 'NLP ANALYSIS', details: 'Mistral AI Intent Recognition' },
+                    { icon: '03', title: 'COMMAND CLASSIFICATION', details: 'Parameters: MISSION CRITICAL' },
+                    { icon: '04', title: 'MAVLINK PROTOCOL', details: 'Command ID: 0x' + cmdId },
+                    { icon: '05', title: 'COMMAND EXECUTION', details: 'Pixhawk Controller Active' }
+                ];
+            }
+
+            steps.forEach((step, index) => {
+                const stepElement = document.createElement('div');
+                stepElement.className = 'processing-step';
+                stepElement.innerHTML = `
+                    <div class="step-icon">${step.icon}</div>
+                    <div class="step-content">
+                        <div class="step-title">${step.title}</div>
+                        <div class="step-details">${step.details}</div>
+                    </div>
+                    <div class="step-status">${index + 1}</div>
+                `;
+                processingStepsContainer.appendChild(stepElement);
+
+                setTimeout(() => {
+                    stepElement.classList.add('active');
+                }, index * 1000);
+
+                setTimeout(() => {
+                    stepElement.querySelector('.step-status').classList.add('completed');
+                    stepElement.querySelector('.step-status').textContent = '✓';
+                }, (index + 1) * 1000);
+            });
+
+            setTimeout(() => {
+                processingPopup.style.display = 'none';
+            }, steps.length * 1000 + 1500);
+        }
+
+        function sendCommand(command) {
+            addLocalLogEntry('INFO', `Sending command: ${command}`);
+            showCommandProcessing(command);
+            
+            fetch('/api/command', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ command: command }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Command response:', data);
+            })
+            .catch(error => {
+                console.error('Error executing command:', error);
+                addLocalLogEntry('ERROR', `Command execution failed: ${error.message}`);
+            });
+        }
+
+        function updateTelemetryValue(elementId, newValue) {
+            const element = document.getElementById(elementId);
+            if (!element) return;
+            
+            const oldValue = element.textContent;
+            
+            if (oldValue !== newValue) {
+                // Add flash animation for value changes
+                element.classList.remove('value-changed');
+                void element.offsetWidth; // Trigger reflow to restart animation
+                element.classList.add('value-changed');
+                
+                // For key metrics like vertical speed or altitude, enhance the change animation
+                if (elementId === 'verticalSpeed' || elementId === 'altitude' || 
+                    elementId === 'cpuTemp' || elementId === 'memoryUsage') {
+                    
+                    // Check if it's a significant change
+                    if (parseFloat(newValue) > parseFloat(oldValue.replace(/[^\d.-]/g, ''))) {
+                        element.classList.add('value-increasing');
+                        setTimeout(() => {
+                            element.classList.remove('value-increasing');
+                        }, 800);
+                    } else if (parseFloat(newValue) < parseFloat(oldValue.replace(/[^\d.-]/g, ''))) {
+                        element.classList.add('value-decreasing');
+                        setTimeout(() => {
+                            element.classList.remove('value-decreasing');
+                        }, 800);
+                    }
+                }
+                
+                element.textContent = newValue;
+            }
+        }
+        
+        function updateDroneAnimation(data) {
+            const droneContainer = document.querySelector('.drone-icon-container');
+            const drone = document.querySelector('.hexacopter');
+            const propellers = document.querySelectorAll('.propeller');
+            const droneShadow = document.querySelector('.drone-icon-container::after') || droneContainer;
+            
+            // Animate based on flight status
+            if (data.armed) {
+                // Activate propellers when armed
+                propellers.forEach(prop => {
+                    prop.classList.add('active');
+                    
+                    // During fast ascent (over 1.5 m/s vertical speed), make propellers spin faster
+                    if (data.vertical_speed > 1.5) {
+                        prop.classList.add('high-speed');
+                    } else {
+                        prop.classList.remove('high-speed');
+                    }
+                });
+                
+                if (data.mode === "GUIDED" || data.mode === "LOITER" || data.altitude > 0.5) {
+                    // Flying animation
+                    droneContainer.classList.add('flying');
+                    
+                    // Adjust drone height based on altitude (max height at 10m)
+                    const liftHeight = Math.min(data.altitude, 10) * 4;  // 4px per meter, max 40px
+                    
+                    // Add slight sideways movement during rapid ascent for more dynamic feel
+                    let tiltX = 0;
+                    let tiltY = 5; // Default tilt
+                    
+                    if (data.vertical_speed > 1.5) {
+                        // During rapid ascent, add vibration effect and stronger lighting
+                        const vibrationX = Math.sin(Date.now() / 100) * 1.5;
+                        tiltX = vibrationX;
+                        drone.style.animation = 'pulse-drone-rapid-ascent 1s infinite alternate';
+                        
+                        // Make shadow smaller during high-speed ascent to enhance height perception
+                        droneContainer.style.setProperty('--shadow-scale', '0.4');
+                        droneContainer.style.setProperty('--shadow-opacity', '0.1');
+                    } else if (data.mode === "GUIDED" && data.altitude < 10) {
+                        // Normal ascent animation
+                        drone.style.animation = 'pulse-drone-flying 1.5s infinite alternate';
+                        droneContainer.style.setProperty('--shadow-scale', '0.6');
+                        droneContainer.style.setProperty('--shadow-opacity', '0.2');
+                    } else {
+                        // Hovering
+                        drone.style.animation = 'pulse-drone-flying 1.5s infinite alternate';
+                        droneContainer.style.setProperty('--shadow-scale', '0.8');
+                        droneContainer.style.setProperty('--shadow-opacity', '0.3');
+                    }
+                    
+                    // Apply combined transformations
+                    drone.style.transform = `translateY(-${liftHeight}px) translateX(${tiltX}px) rotateX(${tiltY}deg)`;
+                } else {
+                    droneContainer.classList.remove('flying');
+                    drone.style.transform = 'translateY(0) rotateX(0)';
+                    drone.style.animation = 'pulse-drone 2s infinite alternate';
+                }
+            } else {
+                // Reset all animations when disarmed
+                droneContainer.classList.remove('flying');
+                propellers.forEach(prop => {
+                    prop.classList.remove('active');
+                    prop.classList.remove('high-speed');
+                });
+                drone.style.transform = 'translateY(0) rotateX(0)';
+                drone.style.animation = 'pulse-drone 2s infinite alternate';
+                droneContainer.style.setProperty('--shadow-scale', '1');
+                droneContainer.style.setProperty('--shadow-opacity', '0.5');
+            }
+        }
+        
+        function updateButtonStates(data) {
+            document.querySelectorAll('.quick-cmd').forEach(button => {
+                const cmd = button.dataset.cmd;
+                if (cmd === 'arm') {
+                    button.disabled = data.armed;
+                } else if (cmd === 'disarm') {
+                    button.disabled = !data.armed;
+                } else if (cmd === 'takeoff' || cmd === 'land' || cmd === 'hover') {
+                    button.disabled = !data.armed;
+                }
+            });
+        }
+
+        // Function to update current date and time in the navbar
+        function updateCurrentDatetime() {
+            const currentDatetimeElement = document.getElementById('currentDatetime');
+            const now = new Date();
+            const dateOptions = { day: '2-digit', month: 'short', year: 'numeric' };
+            const timeOptions = { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
+            const dateString = now.toLocaleDateString('en-US', dateOptions).toUpperCase();
+            const timeString = now.toLocaleTimeString('en-US', timeOptions);
+            currentDatetimeElement.textContent = `${dateString} | ${timeString} UTC`;
+        }
+    </script>
+</body>
+</html>
