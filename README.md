@@ -11,8 +11,6 @@
 
 MADMAX revolutionizes drone control by combining cutting-edge AI agents, natural language processing, and computer vision into a unified autonomous aerial robotics platform. Built for the NVIDIA Jetson Orin Nano and Pixhawk 6C, it transforms simple voice commands into intelligent flight missions.
 
-![MADMAX Demo](https://via.placeholder.com/800x400/0f0f23/00ff88?text=MADMAX+AI+Agentic+Drone+Control)
-
 ---
 
 ## 🌟 Key Features
@@ -83,13 +81,6 @@ graph TD
 "Track the moving target and maintain 30m distance"
 ```
 
-### **Object Detection Capabilities**
-- **Vehicle Detection**: Cars, trucks, motorcycles with color classification
-- **Person Detection**: Human detection and tracking for search & rescue
-- **Infrastructure**: Buildings, bridges, power lines for inspection
-- **Agricultural**: Crop health monitoring, livestock counting
-- **Custom Objects**: Train custom YOLOv8 models for specific targets
-
 ### Core Components
 
 1. **NLP Intent Extractor** (`ai_agents/nlp_intent_extractor.py`)
@@ -147,54 +138,6 @@ graph TD
 # 4. Power distribution to all components
 ```
 
-### 2. Software Installation
-
-```bash
-# Clone and navigate to MADMAX directory
-cd /path/to/madmax
-
-# Run automated setup
-python3 setup_madmax.py
-
-# Edit configuration
-cp .env.example .env
-nano .env  # Configure your MAVLink connection and API keys
-```
-
-### 3. Launch System
-
-```bash
-# Start MADMAX system
-./start_madmax.sh
-
-# Or run directly
-python3 madmax_agentic_webserver.py
-```
-
-### 4. Access Web Interface
-
-Open your browser and navigate to: **http://localhost:5000**
-
-## 💬 Natural Language Commands
-
-MADMAX understands a wide variety of natural language commands:
-
-### Basic Flight Commands
-- `"Take off to 10 meters"`
-- `"Land safely"`
-- `"Hover in place for 30 seconds"`
-- `"Return home"`
-
-### Navigation Commands
-- `"Move to coordinates 47.641468, -122.140165"`
-- `"Fly to coordinates 47.641, -122.140 at altitude 20 meters"`
-- `"Go north 50 meters"`
-
-### Advanced Maneuvers
-- `"Orbit around current position with radius 20 meters"`
-- `"Patrol the area for 5 minutes"`
-- `"Survey the field at 30 meters altitude"`
-
 ### System Commands
 - `"Arm the drone"`
 - `"Disarm the drone"`
@@ -225,31 +168,6 @@ MIN_BATTERY=20    # percentage
 - **Network UDP**: `udp:192.168.1.100:14550`
 - **SITL Testing**: `tcp:127.0.0.1:5760`
 
-## 🛡️ Safety Features
-
-- **Altitude Limits**: Enforces FAA 120m altitude limit
-- **Speed Limits**: Prevents excessive speeds
-- **Battery Monitoring**: Warns on low battery
-- **GPS Requirements**: Ensures GPS lock before flight
-- **Emergency Stop**: Immediate flight termination
-- **Pre-flight Checks**: Automated safety checklist
-
-## 🧠 AI Agent Framework
-
-MADMAX uses CrewAI for intelligent mission planning:
-
-- **Safety Officer Agent**: Assesses flight risks
-- **Mission Planner Agent**: Creates detailed flight plans
-- **Execution Monitor Agent**: Monitors flight progress
-
-### Agent Capabilities
-
-- Risk assessment and safety validation
-- Intelligent waypoint planning
-- Weather and airspace consideration
-- Battery life estimation
-- Contingency planning
-
 ## 📊 Web Dashboard Features
 
 - **Real-time Telemetry**: Battery, GPS, altitude, speed
@@ -272,39 +190,9 @@ MADMAX uses CrewAI for intelligent mission planning:
 - Flight control and stabilization
 - Sensor fusion and navigation
 - Safety and failsafe systems
-
-## 📁 Project Structure
-
-```
-madmax/
-├── ai_agents/                    # AI agentic components
-│   ├── nlp_intent_extractor.py  # Natural language processing
-│   ├── flight_agent.py          # AI mission planning
-│   ├── mavlink_interface.py     # Flight controller communication
-│   └── agentic_controller.py    # Main system orchestrator
-├── madmax_agentic_webserver.py  # Web server and API
-├── agentic_dashboard.html       # Web dashboard interface
-├── setup_madmax.py              # Automated setup script
-├── start_madmax.sh              # System startup script
-├── requirements.txt             # Python dependencies
-├── .env.example                 # Configuration template
-└── README.md                    # This file
 ```
 
-## 🧪 Testing
 
-### SITL Simulation Testing
-
-```bash
-# Start ArduPilot SITL
-sim_vehicle.py -v ArduCopter --console --map
-
-# Configure for SITL testing
-export MAVLINK_CONNECTION=tcp:127.0.0.1:5760
-
-# Run MADMAX
-python3 madmax_agentic_webserver.py
-```
 
 ### Hardware Testing
 
@@ -346,27 +234,6 @@ python3 madmax_agentic_webserver.py
 - **Mobile App**: Remote control via smartphone
 - **Machine Learning**: Adaptive flight behavior
 
-## 📄 License & Attribution
-
-**MIT License** - Free for commercial and personal use
-
-### Third-Party Components
-- **ArduPilot**: GPLv3 License
-- **YOLOv8**: AGPL-3.0 License  
-- **OpenCV**: Apache 2.0 License
-
-## 🤝 Contributing & Community
-
-### Development Team
-- **Lead Developer**: [Your Name] - AI Systems & Flight Control
-- **Computer Vision**: Advanced object detection and tracking
-- **Hardware Integration**: Jetson Orin Nano optimization
-
-### How to Contribute
-```bash
-# Fork the repository and create a feature branch
-git checkout -b feature/amazing-new-feature
-# Make your changes and submit a pull request
 ```
 
 ## 🏆 Acknowledgments
@@ -377,14 +244,6 @@ git checkout -b feature/amazing-new-feature
 
 ---
 
-## ⚠️ Safety & Legal Notice
-
-**IMPORTANT**: This system is designed for research and educational purposes. Always:
-- ✅ Follow local aviation regulations (FAA Part 107, EASA, etc.)
-- ✅ Maintain visual line of sight during operations
-- ✅ Test in safe, controlled environments
-- ✅ Ensure proper insurance coverage
-- ✅ Respect privacy and no-fly zones
 
 **The developers assume no liability for accidents or damages.**
 
