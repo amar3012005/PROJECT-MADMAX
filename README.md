@@ -64,21 +64,12 @@ graph TD
 ### **Natural Language Commands**
 ```bash
 # Basic Flight Operations
-"Take off to 15 meters altitude"
+"Take off 
 "Land at current position"
 "Return home immediately"
 "Hover in place for 2 minutes"
 
-# Navigation Commands
-"Fly to coordinates 37.7749, -122.4194"
-"Move north 100 meters at 20 meter altitude"
-"Follow GPS waypoints from mission file"
 
-# Advanced Missions
-"Search for red vehicles in a 500m radius"
-"Survey the agricultural field at 50m altitude"
-"Patrol the perimeter for 10 minutes"
-"Track the moving target and maintain 30m distance"
 ```
 
 ### Core Components
